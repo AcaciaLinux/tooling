@@ -10,6 +10,7 @@ name = "builder"
 path = "src/bin/builder.rs"
 
 [dependencies]
+elf = "0.7.3"
 log = "0.4.20"
 serde = { version = "1.0.192", features = ["derive"] }
 sys-mount = { version = "2.1.0", default-features = false }

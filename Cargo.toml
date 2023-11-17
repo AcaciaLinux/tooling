@@ -10,3 +10,4 @@ name = "builder"
 path = "src/bin/builder.rs"
 
 [dependencies]
+serde = { version = "1.0.192", features = ["derive"] }

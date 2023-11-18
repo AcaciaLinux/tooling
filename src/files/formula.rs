@@ -89,7 +89,7 @@ impl FormulaPackage {
             description: self.description.unwrap_or(formula.description.clone()),
             extra_dependencies: self
                 .extra_dependencies
-                .unwrap_or(formula.extra_dependencies.clone().unwrap_or(Vec::new())),
+                .unwrap_or(formula.extra_dependencies.clone().unwrap_or_default()),
             prepare: self.prepare,
             build: self.build,
             check: self.check,

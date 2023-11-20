@@ -10,7 +10,10 @@ name = "builder"
 path = "src/bin/builder.rs"
 
 [dependencies]
+clap = { version = "4.4.8", features = ["derive"] }
 elf = "0.7.3"
 log = "0.4.20"
+pretty_env_logger = "0.5.0"
 serde = { version = "1.0.192", features = ["derive"] }
 sys-mount = { version = "2.1.0", default-features = false }
+toml = "0.8.8"

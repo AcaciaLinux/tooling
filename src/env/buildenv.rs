@@ -42,6 +42,13 @@ impl<'a> BuildEnvironment<'a> {
         })
     }
 
+    /// Adds a mount to the internal list of mounts to manage and eventually drop
+    /// # Arguments
+    /// * `mount` - The mount to add
+    pub fn add_mount(&mut self, mount: UnmountDrop<Mount>) {
+        self.mounts.push(mount);
+    }
+
     /// Returns a reference to the `OverlayMount` used for the build environment
     pub fn get_overlay_mount(&self) -> &OverlayMount {
         &self.overlay

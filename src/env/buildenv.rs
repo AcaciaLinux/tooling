@@ -26,8 +26,12 @@ impl<'a> BuildEnvironment<'a> {
         let target = overlay_mount.get_merged_dir();
 
         // Mount the virtual kernel filesystems
-        let m_dev = mount_bind(Path::new("/dev"), &target.join("dev"))?;
-        let m_dev_pts = mount_bind(Path::new("/dev/pts"), &target.join("dev").join("pts"))?;
+        let m_dev = mount_bind(Path::new("/dev"), &target.join("dev"), false)?;
+        let m_dev_pts = mount_bind(
+            Path::new("/dev/pts"),
+            &target.join("dev").join("pts"),
+            false,
+        )?;
         let m_proc = mount_vkfs("proc", &target.join("proc"))?;
         let m_sysfs = mount_vkfs("sysfs", &target.join("sys"))?;
         let m_tmpfs = mount_vkfs("tmpfs", &target.join("run"))?;

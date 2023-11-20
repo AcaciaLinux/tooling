@@ -12,9 +12,14 @@ use sys_mount::{Mount, MountFlags, UnmountDrop, UnmountFlags};
 /// # Arguments
 /// * `source` - The source directory
 /// * `target` - The target directory
+/// * `readonly` - If the `RDONLY` flag should be appended
 ///
 /// Mount command: `mount --bind <source> <target>`
-pub fn mount_bind(source: &Path, target: &Path) -> Result<UnmountDrop<Mount>, std::io::Error> {
+pub fn mount_bind(
+    source: &Path,
+    target: &Path,
+    readonly: bool,
+) -> Result<UnmountDrop<Mount>, std::io::Error> {
     std::fs::create_dir_all(source)?;
     std::fs::create_dir_all(target)?;
 
@@ -24,9 +29,12 @@ pub fn mount_bind(source: &Path, target: &Path) -> Result<UnmountDrop<Mount>, st
         target.to_string_lossy()
     );
 
-    Mount::builder()
-        .flags(MountFlags::BIND)
-        .mount_autodrop(source, target, UnmountFlags::DETACH)
+    if readonly {
+        Mount::builder().flags(MountFlags::BIND | MountFlags::RDONLY)
+    } else {
+        Mount::builder().flags(MountFlags::BIND)
+    }
+    .mount_autodrop(source, target, UnmountFlags::DETACH)
 }
 
 /// Mounts a virtual kernel filesystem

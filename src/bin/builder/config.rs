@@ -28,6 +28,10 @@ pub struct BuilderConfig {
     /// Construct the build root, chroot into it and execute this command instead of the build steps
     pub exec: Option<String>,
 
+    #[arg(long)]
+    /// The architecture to build for
+    pub arch: Option<String>,
+
     /// The formula to build
     pub formula: PathBuf,
 }
@@ -45,6 +49,7 @@ impl BuilderConfig {
             acacia_dir: DEFAULT_ACACIA_DIR.into(),
             overlay_dirs: Vec::new(),
             exec: None,
+            arch: None,
             formula: formula_path,
         }
     }
@@ -67,5 +72,18 @@ impl BuilderConfig {
     /// Returns the directory for the overlayfs merged dir to chroot into inside the workdir: `<workdir>/overlay/work`
     pub fn get_overlay_merged_dir(&self) -> PathBuf {
         self.get_overlay_dir().join("merged")
+    }
+
+    /// Returns the architecture the builder should build for, using the `uname` crate
+    /// or the overridden value (`--arch`)
+    pub fn get_arch(&self) -> String {
+        match &self.arch {
+            Some(a) => a.clone(),
+            None => {
+                uname::uname()
+                    .expect("Unable to read machine information")
+                    .machine
+            }
+        }
     }
 }

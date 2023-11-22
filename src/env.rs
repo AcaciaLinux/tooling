@@ -3,6 +3,7 @@
 mod buildenv;
 use std::{collections::HashMap, ffi::OsString};
 
+use crate::util::signal::SignalDispatcher;
 pub use buildenv::*;
 
 /// An environment that can execute `EnvironmentExecutables`
@@ -10,9 +11,11 @@ pub trait Environment {
     /// Executes a `EnvironmentExecutable` in the environment
     /// # Arguments
     /// * `executable` - A reference to the executable to execute
+    /// * `signal_dispatcher` - A reference to the `SignalDispatcher` to register signals for the executed process
     fn execute(
         &self,
         executable: &dyn EnvironmentExecutable,
+        signal_dispatcher: &SignalDispatcher,
     ) -> Result<std::process::ExitStatus, std::io::Error>;
 }
 

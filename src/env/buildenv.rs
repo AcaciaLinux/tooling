@@ -4,7 +4,10 @@ use log::{debug, error, info};
 use std::process::Command;
 use sys_mount::{Mount, Unmount, UnmountDrop, UnmountFlags};
 
-use crate::util::mount::{mount_bind, mount_vkfs, OverlayMount};
+use crate::util::{
+    mount::{mount_bind, mount_vkfs, OverlayMount},
+    signal::SignalDispatcher,
+};
 
 use super::{Environment, EnvironmentExecutable};
 
@@ -76,6 +79,7 @@ impl<'a> Environment for BuildEnvironment<'a> {
     fn execute(
         &self,
         executable: &dyn EnvironmentExecutable,
+        signal_dispatcher: &SignalDispatcher,
     ) -> Result<std::process::ExitStatus, std::io::Error> {
         let mut command = Command::new("/bin/chroot");
 

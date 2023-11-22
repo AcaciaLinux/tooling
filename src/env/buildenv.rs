@@ -1,6 +1,10 @@
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use std::process::Command;
 use sys_mount::{Mount, Unmount, UnmountDrop, UnmountFlags};
 
@@ -121,11 +125,37 @@ impl<'a> Environment for BuildEnvironment<'a> {
             }
         }
 
-        let output = command.spawn()?.wait_with_output()?;
+        let executable_name = executable.get_name();
+        let process_arc = Arc::new(Mutex::new(command.spawn()?));
 
-        debug!("Command exited with {}", output.status);
+        let handler_arc = process_arc.clone();
 
-        Ok(output.status)
+        // Construct a signal handler that will kill the child process
+        let guard = signal_dispatcher.add_handler(Box::new(move || {
+            match handler_arc.lock().expect("Lock handler mutex").kill() {
+                Ok(_) => warn!("Killed build step '{}'", executable_name),
+                Err(_) => error!("Failed to kill build step {}", executable_name),
+            }
+        }));
+
+        // Loop until the child exits
+        loop {
+            // Lock the mutex to query
+            let mut child = process_arc.lock().expect("Lock mutex");
+
+            // If the child has exited, exit here, too
+            if let Some(res) = child.try_wait()? {
+                debug!("Command exited with {}", res);
+                // Release the signal handler
+                drop(guard);
+
+                return Ok(res);
+            }
+
+            // Drop the mutex to free for the signal handler
+            drop(child);
+            std::thread::sleep(Duration::from_millis(100));
+        }
     }
 }
 

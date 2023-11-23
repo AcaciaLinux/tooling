@@ -1,18 +1,21 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use log::debug;
-use sys_mount::{Mount, UnmountDrop, UnmountFlags};
+use sys_mount::{UnmountDrop, UnmountFlags};
 
-pub struct OverlayMount<'a> {
-    lower_dirs: &'a [&'a Path],
-    work_dir: &'a Path,
-    upper_dir: &'a Path,
-    merged_dir: &'a Path,
+use super::Mount;
 
-    mount: UnmountDrop<Mount>,
+/// Represents an overlayfs mount
+pub struct OverlayMount {
+    lower_dirs: Vec<PathBuf>,
+    work_dir: PathBuf,
+    upper_dir: PathBuf,
+    merged_dir: PathBuf,
+
+    mount: UnmountDrop<sys_mount::Mount>,
 }
 
-impl<'a> OverlayMount<'a> {
+impl OverlayMount {
     /// Mounts an `overlayfs` using the supplied options
     /// # Arguments
     /// * `lower` -  The `lowerdir` sequence of lower directories
@@ -20,17 +23,17 @@ impl<'a> OverlayMount<'a> {
     /// * `upper` - The `upperdir` to store the new files in
     /// * `merged` - The merged directory where to mount the `overlay` filesystem
     pub fn new(
-        lower: &'a [&'a Path],
-        work: &'a Path,
-        upper: &'a Path,
-        merged: &'a Path,
-    ) -> Result<OverlayMount<'a>, std::io::Error> {
-        std::fs::create_dir_all(work)?;
-        std::fs::create_dir_all(upper)?;
-        std::fs::create_dir_all(merged)?;
+        lower: Vec<PathBuf>,
+        work: PathBuf,
+        upper: PathBuf,
+        merged: PathBuf,
+    ) -> Result<OverlayMount, std::io::Error> {
+        std::fs::create_dir_all(&work)?;
+        std::fs::create_dir_all(&upper)?;
+        std::fs::create_dir_all(&merged)?;
 
         let mut lower_s = String::new();
-        for p in lower {
+        for p in &lower {
             lower_s.push_str(&p.to_string_lossy());
             lower_s.push(':');
         }
@@ -47,10 +50,10 @@ impl<'a> OverlayMount<'a> {
             &merged.to_string_lossy()
         );
 
-        let mount = Mount::builder()
+        let mount = sys_mount::Mount::builder()
             .fstype("overlay")
             .data(&data)
-            .mount_autodrop("overlay", merged, UnmountFlags::DETACH)?;
+            .mount_autodrop("overlay", &merged, UnmountFlags::DETACH)?;
 
         Ok(OverlayMount {
             lower_dirs: lower,
@@ -60,32 +63,37 @@ impl<'a> OverlayMount<'a> {
             mount,
         })
     }
+}
 
-    /// Returns the array of lowerdirs this overlay mount consists of
-    pub fn get_lower_dirs(&self) -> &[&Path] {
+impl Mount for OverlayMount {
+    fn get_fs_type(&self) -> String {
+        "overlayfs".to_string()
+    }
+
+    fn get_target_path(&self) -> &Path {
+        &self.merged_dir
+    }
+
+    fn get_source_path(&self) -> &Path {
         self.lower_dirs
+            .first()
+            .expect("Expexted at least 1 lowerdir")
     }
 
-    /// Returns the workdir this overlay mount consists of
-    pub fn get_work_dir(&self) -> &Path {
-        self.work_dir
-    }
+    fn get_source_paths(&self) -> Vec<&Path> {
+        let mut vec: Vec<&Path> = self.lower_dirs.iter().map(|d| d.as_path()).collect();
+        vec.push(&self.work_dir);
+        vec.push(&self.upper_dir);
 
-    /// Returns the upperdir this overlay mount consists of
-    pub fn get_upper_dir(&self) -> &Path {
-        self.upper_dir
-    }
-
-    /// Returns the target directory this overlay mount points to
-    pub fn get_merged_dir(&self) -> &Path {
-        self.merged_dir
+        vec
     }
 }
 
-impl<'a> Drop for OverlayMount<'a> {
+impl Drop for OverlayMount {
     fn drop(&mut self) {
         debug!(
-            "Unmounting overlayfs {}",
+            "Unmounting {} at {}",
+            self.get_fs_type(),
             self.mount.target_path().to_string_lossy()
         );
     }

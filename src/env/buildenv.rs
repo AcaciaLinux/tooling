@@ -6,10 +6,9 @@ use std::{
 
 use log::{debug, error, info, warn};
 use std::process::Command;
-use sys_mount::{Mount, Unmount, UnmountDrop, UnmountFlags};
 
 use crate::util::{
-    mount::{mount_bind, mount_vkfs, OverlayMount},
+    mount::{BindMount, Mount, VKFSMount},
     signal::SignalDispatcher,
 };
 
@@ -23,16 +22,16 @@ use super::{Environment, EnvironmentExecutable};
 /// Expects the following programs:
 /// - `env`: The `env` program that can be found using the PATH variable
 /// - `sh`: The `sh` program that can be found using the PATH variable
-pub struct BuildEnvironment<'a> {
+pub struct BuildEnvironment {
     /// The overlayfs that is used for the root
-    overlay: OverlayMount<'a>,
+    root: Box<dyn Mount>,
     /// All the mounts that go into the build root
-    mounts: Vec<UnmountDrop<Mount>>,
+    mounts: Vec<Box<dyn Mount>>,
     /// The path to search for the host toolchain to prepend the PATH variable
     toolchain_dir: PathBuf,
 }
 
-impl<'a> BuildEnvironment<'a> {
+impl BuildEnvironment {
     /// Creates a new build environment from the `overlay_mount`, mounting in the following vkfs:
     /// - `/dev (bind)`==> `<merged>/dev`
     /// - `/dev/pts (bind)`==> `<merged>/dev/pts`
@@ -43,25 +42,31 @@ impl<'a> BuildEnvironment<'a> {
     /// * `overlay_mount` - The overlay mount to construct the build environment in
     /// * `toolchain_dir` - The directory to search for toolchain files (PATH)
     pub fn new(
-        overlay_mount: OverlayMount<'a>,
+        root_mount: Box<dyn Mount>,
         toolchain_dir: PathBuf,
-    ) -> Result<BuildEnvironment<'a>, std::io::Error> {
-        let target = overlay_mount.get_merged_dir();
+    ) -> Result<BuildEnvironment, std::io::Error> {
+        let target = root_mount.get_target_path();
 
         // Mount the virtual kernel filesystems
-        let m_dev = mount_bind(Path::new("/dev"), &target.join("dev"), false)?;
-        let m_dev_pts = mount_bind(
+        let m_dev = BindMount::new(Path::new("/dev"), &target.join("dev"), false)?;
+        let m_dev_pts = BindMount::new(
             Path::new("/dev/pts"),
             &target.join("dev").join("pts"),
             false,
         )?;
-        let m_proc = mount_vkfs("proc", &target.join("proc"))?;
-        let m_sysfs = mount_vkfs("sysfs", &target.join("sys"))?;
-        let m_tmpfs = mount_vkfs("tmpfs", &target.join("run"))?;
+        let m_proc = VKFSMount::new("proc", &target.join("proc"))?;
+        let m_sysfs = VKFSMount::new("sysfs", &target.join("sys"))?;
+        let m_tmpfs = VKFSMount::new("tmpfs", &target.join("run"))?;
 
         Ok(BuildEnvironment {
-            overlay: overlay_mount,
-            mounts: vec![m_dev, m_dev_pts, m_proc, m_sysfs, m_tmpfs],
+            root: root_mount,
+            mounts: vec![
+                Box::new(m_dev),
+                Box::new(m_dev_pts),
+                Box::new(m_proc),
+                Box::new(m_sysfs),
+                Box::new(m_tmpfs),
+            ],
             toolchain_dir,
         })
     }
@@ -69,17 +74,17 @@ impl<'a> BuildEnvironment<'a> {
     /// Adds a mount to the internal list of mounts to manage and eventually drop
     /// # Arguments
     /// * `mount` - The mount to add
-    pub fn add_mount(&mut self, mount: UnmountDrop<Mount>) {
+    pub fn add_mount(&mut self, mount: Box<dyn Mount>) {
         self.mounts.push(mount);
     }
 
     /// Returns a reference to the `OverlayMount` used for the build environment
-    pub fn get_overlay_mount(&self) -> &OverlayMount {
-        &self.overlay
+    pub fn get_root_mount(&self) -> &dyn Mount {
+        self.root.as_ref()
     }
 }
 
-impl<'a> Environment for BuildEnvironment<'a> {
+impl Environment for BuildEnvironment {
     fn execute(
         &self,
         executable: &dyn EnvironmentExecutable,
@@ -89,7 +94,7 @@ impl<'a> Environment for BuildEnvironment<'a> {
 
         command
             .env_clear()
-            .arg(self.overlay.get_merged_dir())
+            .arg(self.root.get_target_path())
             .arg("env")
             .arg("-C")
             .arg(executable.get_workdir())
@@ -159,20 +164,11 @@ impl<'a> Environment for BuildEnvironment<'a> {
     }
 }
 
-impl<'a> Drop for BuildEnvironment<'a> {
+impl Drop for BuildEnvironment {
     fn drop(&mut self) {
         info!("Tearing down build environment...");
         while let Some(mount) = self.mounts.pop() {
-            match mount.unmount(UnmountFlags::DETACH) {
-                Err(e) => error!(
-                    "Failed to unmount {}: {}",
-                    mount.target_path().to_string_lossy(),
-                    e
-                ),
-                Ok(_) => {
-                    debug!("Unmounted {}", mount.target_path().to_string_lossy())
-                }
-            }
+            drop(mount)
         }
     }
 }

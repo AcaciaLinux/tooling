@@ -2,3 +2,6 @@
 
 mod walk;
 pub use walk::*;
+
+mod unwind_symlinks;
+pub use unwind_symlinks::*;

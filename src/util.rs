@@ -3,4 +3,5 @@
 pub mod elf;
 pub mod fs;
 pub mod mount;
+pub mod parse;
 pub mod signal;

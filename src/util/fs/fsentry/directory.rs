@@ -86,4 +86,30 @@ impl Directory {
 
         None
     }
+
+    /// Returns the amount of children in this directory
+    /// # Arguments
+    /// * `recursive` - If this function should include the count of entries of subdirectories
+    pub fn num_children(&self, recursive: bool) -> usize {
+        let mut num = self.children.len();
+
+        if recursive {
+            for child in &self.children {
+                if let FSEntry::Directory(child) = child {
+                    num += child.num_children(recursive);
+                }
+            }
+        }
+
+        num
+    }
+}
+
+impl std::fmt::Debug for Directory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Directory")
+            .field("name", &self.name)
+            .field("children", &self.num_children(true))
+            .finish()
+    }
 }

@@ -17,3 +17,12 @@ impl<T> ErrorExt<T> for Result<T, elf::ParseError> {
         }
     }
 }
+
+impl<T> ErrorExt<T> for Result<T, toml::de::Error> {
+    fn e_context<F: Fn() -> String>(self, context: F) -> Result<T, Error> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => Err(Error::new_context(ErrorType::TOML(e), context())),
+        }
+    }
+}

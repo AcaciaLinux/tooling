@@ -9,6 +9,7 @@ mod support;
 pub enum ErrorType {
     IO(std::io::Error),
     ELFParse(elf::ParseError),
+    TOML(toml::de::Error),
 }
 
 /// The error struct, containing the error and a context
@@ -58,8 +59,9 @@ impl Error {
 impl std::fmt::Display for ErrorType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ErrorType::IO(e) => e.fmt(f),
-            ErrorType::ELFParse(e) => e.fmt(f),
+            Self::IO(e) => e.fmt(f),
+            Self::ELFParse(e) => e.fmt(f),
+            Self::TOML(e) => e.fmt(f),
         }
     }
 }

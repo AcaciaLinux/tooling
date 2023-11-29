@@ -2,10 +2,11 @@ use super::unwind_symlinks;
 use crate::error::{Error, ErrorExt};
 use log::trace;
 use std::{
+    collections::LinkedList,
     ffi::{OsStr, OsString},
     fs::File,
     io::Read,
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 mod directory;
@@ -102,5 +103,21 @@ impl<'a> SearchType<'a> {
             SearchType::ELF(_) => matches!(fsentry, FSEntry::ELF(_)),
             SearchType::Any(_) => true,
         }
+    }
+}
+
+/// A trait to convert some other struct to a PathBuf
+pub trait ToPathBuf {
+    /// Converts to a `PathBuf`
+    fn to_path_buf(&self) -> PathBuf;
+}
+
+impl ToPathBuf for LinkedList<OsString> {
+    fn to_path_buf(&self) -> PathBuf {
+        let mut path = PathBuf::new();
+        for e in self {
+            path.push(e);
+        }
+        path
     }
 }

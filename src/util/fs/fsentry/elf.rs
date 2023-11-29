@@ -1,4 +1,7 @@
-use std::{ffi::OsString, path::Path};
+use std::{
+    ffi::OsString,
+    path::{Path, PathBuf},
+};
 
 use elf::{endian::AnyEndian, ElfBytes};
 
@@ -10,11 +13,11 @@ use crate::{
 /// A structure representing an ELF file
 pub struct ELFFile {
     /// The interpreter requested by the binary (if available)
-    pub interpreter: Option<String>,
+    pub interpreter: Option<PathBuf>,
     /// The needed shared libraries
-    pub shared_needed: Vec<String>,
+    pub shared_needed: Vec<OsString>,
     /// The `RUNPATH` array of search paths for the dynamic linker
-    pub runpaths: Vec<String>,
+    pub runpaths: Vec<OsString>,
 
     /// The name of the file
     pub name: OsString,
@@ -33,15 +36,12 @@ impl ELFFile {
             .e_context(|| format!("Parsing ELF file at {}", &path.to_string_lossy()))?;
 
         let elf_file_struct = ELFFile {
-            interpreter: file
-                .get_interpreter()
-                .e_context(|| {
-                    format!(
-                        "Reading interpreter of ELF file {}",
-                        &path.to_string_lossy()
-                    )
-                })?
-                .map(|i| i.to_string()),
+            interpreter: file.get_interpreter().e_context(|| {
+                format!(
+                    "Reading interpreter of ELF file {}",
+                    &path.to_string_lossy()
+                )
+            })?,
 
             shared_needed: file
                 .get_shared_needed()
@@ -53,7 +53,7 @@ impl ELFFile {
                 })?
                 .unwrap_or_default()
                 .iter()
-                .map(|s| s.to_string())
+                .map(|s| s.to_owned())
                 .collect(),
 
             runpaths: file
@@ -61,7 +61,7 @@ impl ELFFile {
                 .e_context(|| format!("Reading RUNPATHs of ELF file {}", &path.to_string_lossy()))?
                 .unwrap_or_default()
                 .iter()
-                .map(|s| s.to_string())
+                .map(|s| s.to_owned())
                 .collect(),
 
             name: path.file_name().expect("Filename").to_owned(),

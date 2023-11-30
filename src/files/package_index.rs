@@ -1,5 +1,5 @@
 //! Data structures to parse a package index file
-use crate::util::package::PackageIndexProvider;
+use crate::package::PackageIndexProvider;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,

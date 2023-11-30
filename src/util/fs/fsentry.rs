@@ -40,8 +40,9 @@ impl FSEntry {
     /// # Arguments
     /// * `path` - The path to infer
     pub fn infer(path: &Path) -> Result<Self, Error> {
-        let path = unwind_symlinks(path);
+        // Store the filename prior to unwinding symlinks, so symlinked files keep their name
         let name = path.file_name().expect("Filename").to_owned();
+        let path = unwind_symlinks(path);
 
         if path.is_symlink() {
             trace!("[infer] SLNK: {}", path.to_string_lossy());
@@ -52,13 +53,15 @@ impl FSEntry {
         } else {
             if let Ok(mut file) = File::open(&path) {
                 let mut buf = vec![0; 53];
-                if file.read(&mut buf).is_ok() && infer::app::is_elf(&buf) {
-                    trace!("[infer] ELF : {}", &path.to_string_lossy());
+                if file.read(&mut buf).is_ok() {
+                    if infer::app::is_elf(&buf) {
+                        trace!("[infer] ELF : {}", &path.to_string_lossy());
 
-                    let f = ELFFile::parse(&path)
-                        .e_context(|| format!("Parsing ELF file {}", path.to_string_lossy()))?;
+                        let f = ELFFile::parse(&path, name)
+                            .e_context(|| format!("Parsing ELF file {}", path.to_string_lossy()))?;
 
-                    return Ok(Self::ELF(f));
+                        return Ok(Self::ELF(f));
+                    }
                 }
             }
 

@@ -27,7 +27,8 @@ impl ELFFile {
     /// Parses an `ELFFile` from the provided path
     /// # Arguments
     /// * `path` - The path to parse the file from
-    pub fn parse(path: &Path) -> Result<ELFFile, Error> {
+    /// * `name` - The name for the parsed file
+    pub fn parse(path: &Path, name: OsString) -> Result<ELFFile, Error> {
         let file_data =
             std::fs::read(path).e_context(|| format!("Reading {}", &path.to_string_lossy()))?;
         let slice = file_data.as_slice();
@@ -64,7 +65,7 @@ impl ELFFile {
                 .map(|s| s.to_owned())
                 .collect(),
 
-            name: path.file_name().expect("Filename").to_owned(),
+            name,
         };
 
         Ok(elf_file_struct)

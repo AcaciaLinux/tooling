@@ -104,6 +104,39 @@ impl Directory {
 
         num
     }
+
+    /// Iterates over all entries of this directory, calling a callback for every entry
+    /// # Arguments
+    /// * `stack` - A mutable linked list to store the path to the current file, should be empty on begin
+    /// * `recursive` - If this function should operate recursively
+    /// * `callback` - The callback for every file. Args: (stack_to_parent_dir, filesystem_entry) -> bool. If the
+    /// callback returns with `false`, iterating will stop immediately
+    /// # Returns
+    /// If the iteration was aborted or not
+    pub fn iterate<'a, F: FnMut(&LinkedList<&OsString>, &FSEntry) -> bool>(
+        &'a self,
+        stack: &mut LinkedList<&'a OsString>,
+        recursive: bool,
+        callback: &mut F,
+    ) -> bool {
+        stack.push_back(&self.name);
+
+        for entry in &self.children {
+            if !callback(stack, entry) {
+                return false;
+            }
+
+            if recursive {
+                if let FSEntry::Directory(dir) = entry {
+                    if !dir.iterate(stack, recursive, callback) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        true
+    }
 }
 
 impl std::fmt::Debug for Directory {

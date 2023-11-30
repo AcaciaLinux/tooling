@@ -11,6 +11,7 @@ use crate::{
 };
 
 /// A structure representing an ELF file
+#[derive(Clone)]
 pub struct ELFFile {
     /// The interpreter requested by the binary (if available)
     pub interpreter: Option<PathBuf>,

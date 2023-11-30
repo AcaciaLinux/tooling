@@ -3,6 +3,7 @@ use crate::error::{Error, ErrorExt};
 use std::{collections::LinkedList, ffi::OsString, path::Path};
 
 /// Represents a directory in a filesystem index
+#[derive(Clone)]
 pub struct Directory {
     /// The name of the directory
     pub name: OsString,

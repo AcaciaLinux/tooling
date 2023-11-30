@@ -16,6 +16,7 @@ mod elf;
 pub use elf::*;
 
 /// A filesystem entry
+#[derive(Clone)]
 pub enum FSEntry {
     /// An ELF file
     ELF(ELFFile),

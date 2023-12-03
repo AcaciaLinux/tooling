@@ -125,3 +125,13 @@ impl ToPathBuf for LinkedList<OsString> {
         path
     }
 }
+
+impl ToPathBuf for LinkedList<&OsString> {
+    fn to_path_buf(&self) -> PathBuf {
+        let mut path = PathBuf::new();
+        for e in self {
+            path.push(e);
+        }
+        path
+    }
+}

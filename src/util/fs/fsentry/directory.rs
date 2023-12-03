@@ -119,6 +119,7 @@ impl Directory {
         recursive: bool,
         callback: &mut F,
     ) -> bool {
+        // Push the current directory
         stack.push_back(&self.name);
 
         for entry in &self.children {
@@ -134,6 +135,9 @@ impl Directory {
                 }
             }
         }
+
+        // And pop it after all children have been processed
+        stack.pop_back();
 
         true
     }

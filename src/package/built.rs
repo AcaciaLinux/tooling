@@ -1,4 +1,6 @@
-use crate::{files::formula::FormulaPackage, util::fs::Directory};
+use std::path::{Path, PathBuf};
+
+use crate::{error::Error, files::formula::FormulaPackage, util::fs::Directory};
 
 use super::{CorePackage, FQPackage, IndexedPackage};
 
@@ -11,20 +13,31 @@ pub struct BuiltPackage {
     pub real_version: u32,
     pub description: String,
 
+    pub path: PathBuf,
+
     pub index: Directory,
 }
 
 impl BuiltPackage {
     /// Constructs a built package from a formula package, the built architecture and the index of its file contents
-    pub fn from_formula(src: FormulaPackage, arch: String, index: Directory) -> Self {
-        Self {
+    /// # Arguments
+    /// * `src` - The source `FormulaPackage` to construct this package from
+    /// * `arch` - The architecture the package has been built for
+    /// * `path` - The path to the package, containing the `data/` directory
+    pub fn from_formula(src: FormulaPackage, arch: String, path: &Path) -> Result<Self, Error> {
+        let index = Directory::index(&path.join("data"), true)?;
+
+        Ok(Self {
             name: src.name,
             version: src.version,
             arch,
             real_version: src.real_version,
             description: src.description,
+
+            path: path.to_owned(),
+
             index,
-        }
+        })
     }
 }
 

@@ -2,8 +2,9 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-const DEFAULT_WORKDIR: &str = "./";
+const DEFAULT_WORKDIR: &str = "./work";
 const DEFAULT_ACACIA_DIR: &str = "/acacia";
+const DEFAULT_PACKAGE_INDEX: &str = "/acacia/packages.toml";
 
 #[derive(Parser)]
 pub struct BuilderConfig {
@@ -32,48 +33,15 @@ pub struct BuilderConfig {
     /// The architecture to build for
     pub arch: Option<String>,
 
+    /// The path to the package index to use for inferring package availability
+    #[arg(long, default_value = DEFAULT_PACKAGE_INDEX)]
+    pub package_index: PathBuf,
+
     /// The formula to build
     pub formula: PathBuf,
 }
 
 impl BuilderConfig {
-    /// Constructs a builder cofiguration assuming some sane defaults
-    /// # Arguments:
-    /// * `toolchain` - The mount-internal path to the toolchain binaries (/bin) to prepend to the PATH variable
-    /// * `formula_path` - The path to the formula to build
-    #[allow(dead_code)]
-    pub fn new(toolchain: PathBuf, formula_path: PathBuf) -> BuilderConfig {
-        BuilderConfig {
-            toolchain,
-            workdir: DEFAULT_WORKDIR.into(),
-            acacia_dir: DEFAULT_ACACIA_DIR.into(),
-            overlay_dirs: Vec::new(),
-            exec: None,
-            arch: None,
-            formula: formula_path,
-        }
-    }
-
-    /// Returns the directory for the overlayfs inside the workdir: `<workdir>/overlay`
-    pub fn get_overlay_dir(&self) -> PathBuf {
-        self.workdir.join("overlay")
-    }
-
-    /// Returns the directory for the overlayfs work dir inside the workdir: `<workdir>/overlay/work`
-    pub fn get_overlay_work_dir(&self) -> PathBuf {
-        self.get_overlay_dir().join("work")
-    }
-
-    /// Returns the directory for the overlayfs upper dir inside the workdir: `<workdir>/overlay/work`
-    pub fn get_overlay_upper_dir(&self) -> PathBuf {
-        self.get_overlay_dir().join("upper")
-    }
-
-    /// Returns the directory for the overlayfs merged dir to chroot into inside the workdir: `<workdir>/overlay/work`
-    pub fn get_overlay_merged_dir(&self) -> PathBuf {
-        self.get_overlay_dir().join("merged")
-    }
-
     /// Returns the architecture the builder should build for, using the `uname` crate
     /// or the overridden value (`--arch`)
     pub fn get_arch(&self) -> String {

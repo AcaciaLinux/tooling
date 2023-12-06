@@ -60,6 +60,11 @@ impl Error {
             error,
         }
     }
+
+    /// Converts this error to the `Err` variant of a `Result`, this will **always** return `Err`
+    pub fn throw(error: ErrorType, context: String) -> Result<(), Error> {
+        Err(Self::new_context(error, context))
+    }
 }
 
 impl std::fmt::Display for ErrorType {

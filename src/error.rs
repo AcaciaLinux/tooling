@@ -2,6 +2,8 @@
 
 use std::collections::LinkedList;
 
+use crate::tools::builder::BuilderError;
+
 mod support;
 
 /// The type of error at hand
@@ -10,6 +12,7 @@ pub enum ErrorType {
     IO(std::io::Error),
     ELFParse(elf::ParseError),
     TOML(toml::de::Error),
+    Builder(BuilderError),
 }
 
 /// The error struct, containing the error and a context
@@ -73,6 +76,7 @@ impl std::fmt::Display for ErrorType {
             Self::IO(e) => e.fmt(f),
             Self::ELFParse(e) => e.fmt(f),
             Self::TOML(e) => e.fmt(f),
+            Self::Builder(e) => e.fmt(f),
         }
     }
 }

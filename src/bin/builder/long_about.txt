@@ -1,0 +1,22 @@
+The 'builder' tool is used to build AcaciaLinux packages from 'formulae'
+
+------------------------------
+
+THIS SOFTWARE COMES WITHOUT **ANY** WARRANTY, USE IT AT YOUR OWN RISK!
+
+THIS SOFTWARE PROBABLY REQUIRES 'ROOT' PERMISSIONS TO MOUNT OVERLAYFS AND CHROOT, SO BE CAREFUL WHAT YOU DO, YOU HAVE BEEN WARNED!
+
+------------------------------
+
+TIPS AND TRICKS:
+ - To build for another architecture, use the '--arch' option
+ - To drop into a shell inside the 'chroot' environment, use the '--exec' option
+ - To add additional overlayfs 'lowerdir's, use the '--overlay-dirs' option
+
+Git: https://github.com/AcaciaLinux/tooling
+For more information an documentation, visit https://acacialinux.org
+Bugs can be reported at https://github.com/AcaciaLinux/tooling/issues/ using the 'New' button
+
+Licensed under the 'GNU GENERAL PUBLIC LICENSE Version 2'
+
+Proudly written in Rust

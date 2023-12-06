@@ -6,9 +6,11 @@ const DEFAULT_WORKDIR: &str = "./work";
 const DEFAULT_ACACIA_DIR: &str = "/acacia";
 const DEFAULT_PACKAGE_INDEX: &str = "/acacia/packages.toml";
 
+/// Build AcaciaLinux packages
 #[derive(Parser)]
+#[command(author = "Max Kofler", name = "builder", version, about = include_str!("about.txt"), long_about = include_str!("long_about.txt"))]
 pub struct BuilderConfig {
-    /// The directory to expect the toolchain binaries at (gets appended with `/bin` for the PATH variable)
+    /// The directory to expect the toolchain binaries at (appended with '/bin' for 'PATH')
     #[arg(long)]
     pub toolchain: PathBuf,
 
@@ -16,8 +18,7 @@ pub struct BuilderConfig {
     #[arg(long, default_value = DEFAULT_WORKDIR)]
     pub workdir: PathBuf,
 
-    /// The directory to use as the `/acacia` directory to get read-only bind mounted into the build root
-    /// and to search for package dependencies in
+    /// The directory to search for package dependencies
     #[arg(long, default_value = DEFAULT_ACACIA_DIR)]
     pub acacia_dir: PathBuf,
 
@@ -26,14 +27,14 @@ pub struct BuilderConfig {
     pub overlay_dirs: Vec<PathBuf>,
 
     #[arg(long, short)]
-    /// Construct the build root, chroot into it and execute this command instead of the build steps
+    /// Chroot and execute a custom command
     pub exec: Option<String>,
 
     #[arg(long)]
     /// The architecture to build for
     pub arch: Option<String>,
 
-    /// The path to the package index to use for inferring package availability
+    /// The path to the package index for searching packages
     #[arg(long, default_value = DEFAULT_PACKAGE_INDEX)]
     pub package_index: PathBuf,
 

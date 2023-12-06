@@ -1,10 +1,14 @@
 //! Environment structures to represent different environments for actions to take place
 
 mod buildenv;
+pub use buildenv::*;
+
 use std::{collections::HashMap, ffi::OsString};
 
 use crate::{error::Error, util::signal::SignalDispatcher};
-pub use buildenv::*;
+
+mod customexec;
+pub use customexec::*;
 
 /// An environment that can execute `EnvironmentExecutables`
 pub trait Environment {

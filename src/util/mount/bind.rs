@@ -3,6 +3,8 @@ use std::path::{Path, PathBuf};
 use log::debug;
 use sys_mount::{MountFlags, UnmountDrop, UnmountFlags};
 
+use crate::error::{Error, ErrorExt};
+
 use super::Mount;
 
 /// Represents a bind mount
@@ -21,9 +23,19 @@ impl BindMount {
     /// * `readonly` - If the `RDONLY` flag should be appended
     ///
     /// Mount command: `mount --bind <source> <target>`
-    pub fn new(source: &Path, target: &Path, readonly: bool) -> Result<Self, std::io::Error> {
-        std::fs::create_dir_all(source)?;
-        std::fs::create_dir_all(target)?;
+    pub fn new(source: &Path, target: &Path, readonly: bool) -> Result<Self, Error> {
+        std::fs::create_dir_all(source).e_context(|| {
+            format!(
+                "Creating bind mount source directory {}",
+                source.to_string_lossy()
+            )
+        })?;
+        std::fs::create_dir_all(target).e_context(|| {
+            format!(
+                "Creating bind mount target directory {}",
+                target.to_string_lossy()
+            )
+        })?;
 
         debug!(
             "Mounting bind {} ==> {}",
@@ -36,7 +48,14 @@ impl BindMount {
         } else {
             sys_mount::Mount::builder().flags(MountFlags::BIND)
         }
-        .mount_autodrop(source, target, UnmountFlags::DETACH)?;
+        .mount_autodrop(source, target, UnmountFlags::DETACH)
+        .e_context(|| {
+            format!(
+                "Bind mounting {} to {}",
+                source.to_string_lossy(),
+                target.to_string_lossy()
+            )
+        })?;
 
         Ok(Self {
             mount,

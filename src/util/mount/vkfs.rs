@@ -3,6 +3,8 @@ use std::path::Path;
 use log::debug;
 use sys_mount::{UnmountDrop, UnmountFlags};
 
+use crate::error::{Error, ErrorExt};
+
 use super::Mount;
 
 /// Represents a mounted kernel virtual filesystem
@@ -19,8 +21,14 @@ impl VKFSMount {
     /// * `target` - The path where to mount the filesystem
     ///
     /// Mount command: `mount -t <filesystem> <filesystem> <target>`
-    pub fn new(filesystem: &str, target: &Path) -> Result<Self, std::io::Error> {
-        std::fs::create_dir_all(target)?;
+    pub fn new(filesystem: &str, target: &Path) -> Result<Self, Error> {
+        std::fs::create_dir_all(target).e_context(|| {
+            format!(
+                "Creating vkfs '{}' target directory {}",
+                filesystem,
+                target.to_string_lossy()
+            )
+        })?;
 
         debug!(
             "Mounting vkfs '{filesystem}' ==> {}",
@@ -31,7 +39,14 @@ impl VKFSMount {
 
         let mount = sys_mount::Mount::builder()
             .fstype(filesystem)
-            .mount_autodrop(source_path, target, UnmountFlags::DETACH)?;
+            .mount_autodrop(source_path, target, UnmountFlags::DETACH)
+            .e_context(|| {
+                format!(
+                    "Mounting vkfs '{}' => {}",
+                    filesystem,
+                    target.to_string_lossy()
+                )
+            })?;
 
         Ok(VKFSMount {
             mount,

@@ -3,6 +3,8 @@ use std::path::{Path, PathBuf};
 use log::debug;
 use sys_mount::{UnmountDrop, UnmountFlags};
 
+use crate::error::{Error, ErrorExt};
+
 use super::Mount;
 
 /// Represents an overlayfs mount
@@ -27,10 +29,21 @@ impl OverlayMount {
         work: PathBuf,
         upper: PathBuf,
         merged: PathBuf,
-    ) -> Result<OverlayMount, std::io::Error> {
-        std::fs::create_dir_all(&work)?;
-        std::fs::create_dir_all(&upper)?;
-        std::fs::create_dir_all(&merged)?;
+    ) -> Result<OverlayMount, Error> {
+        std::fs::create_dir_all(&work)
+            .e_context(|| format!("Creating overlay work directory {}", work.to_string_lossy()))?;
+        std::fs::create_dir_all(&upper).e_context(|| {
+            format!(
+                "Creating overlay upper directory {}",
+                upper.to_string_lossy()
+            )
+        })?;
+        std::fs::create_dir_all(&merged).e_context(|| {
+            format!(
+                "Creating overlay merged directory {}",
+                merged.to_string_lossy()
+            )
+        })?;
 
         let mut lower_s = String::new();
         for p in &lower {
@@ -53,7 +66,14 @@ impl OverlayMount {
         let mount = sys_mount::Mount::builder()
             .fstype("overlay")
             .data(&data)
-            .mount_autodrop("overlay", &merged, UnmountFlags::DETACH)?;
+            .mount_autodrop("overlay", &merged, UnmountFlags::DETACH)
+            .e_context(|| {
+                format!(
+                    "Mounting overlay ({}) => {}",
+                    data,
+                    merged.to_string_lossy()
+                )
+            })?;
 
         Ok(OverlayMount {
             lower_dirs: lower,

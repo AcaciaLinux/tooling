@@ -7,9 +7,10 @@ use crate::{
     util::fs::SearchType,
 };
 
-use super::{IndexedPackage, InstalledPackage, PackageIndexProvider};
+use super::{CorePackage, IndexedPackage, InstalledPackage, PackageIndexProvider};
 
 /// A searchable index of installed packages
+#[derive(Default)]
 pub struct InstalledPackageIndex {
     /// The packages
     packages: Vec<InstalledPackage>,
@@ -20,10 +21,7 @@ impl InstalledPackageIndex {
     /// # Arguments
     /// * `index` - The `PackageIndexProvider` to parse from
     /// * `acacia_dir` - The directory to search for packages
-    pub fn from_index<'a>(
-        index: &'a dyn PackageIndexProvider<'a>,
-        acacia_dir: &Path,
-    ) -> Result<Self, Error> {
+    pub fn from_index(index: &dyn PackageIndexProvider, acacia_dir: &Path) -> Result<Self, Error> {
         let context = || {
             format!(
                 "Creating installed package index of {}",
@@ -36,14 +34,14 @@ impl InstalledPackageIndex {
         };
 
         for package in index.get_packages() {
-            let path = package.path(acacia_dir);
+            let path = package.get_path(acacia_dir);
 
             if !path.exists() {
                 Err(std::io::Error::new(
                     std::io::ErrorKind::NotFound,
                     format!(
                         "Not Found: Package '{}' @ {}",
-                        package.full_name(),
+                        package.get_full_name(),
                         path.to_string_lossy()
                     ),
                 ))
@@ -83,5 +81,9 @@ impl InstalledPackageIndex {
         }
 
         None
+    }
+
+    pub fn inner(&self) -> &Vec<InstalledPackage> {
+        &self.packages
     }
 }

@@ -31,12 +31,12 @@ impl InstalledPackage {
     /// * `index_pkg` - The IndexPackage to use for information on where to find the package
     /// * `acacia_dir` - The path to the `/acacia` directory to search for packages
     pub fn parse_from_index(index_pkg: &IndexPackage, acacia_dir: &Path) -> Result<Self, Error> {
-        let pkg_path = index_pkg.path(acacia_dir);
+        let pkg_path = index_pkg.get_path(acacia_dir);
 
         let context = || {
             format!(
                 "Parsing package {} at {}",
-                index_pkg.full_name(),
+                index_pkg.get_full_name(),
                 pkg_path.to_string_lossy()
             )
         };

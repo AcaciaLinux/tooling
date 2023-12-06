@@ -29,6 +29,12 @@ pub trait ErrorExt<T> {
     fn e_context<F: Fn() -> String>(self, context: F) -> Result<T, Error>;
 }
 
+/// A trait for types that can be populated to an `Error`
+pub trait Throwable {
+    /// Converts `self` to an `Error` with the supplied context
+    fn throw(self, context: String) -> Error;
+}
+
 impl Error {
     /// Creates a new `Error`
     /// # Arguments

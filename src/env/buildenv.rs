@@ -104,6 +104,7 @@ impl Environment for BuildEnvironment {
             .arg("-C")
             .arg(executable.get_workdir())
             .arg("sh")
+            .arg("-e")
             .arg("-c")
             .arg(executable.get_command());
 

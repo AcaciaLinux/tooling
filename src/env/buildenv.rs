@@ -7,9 +7,12 @@ use std::{
 use log::{debug, error, info, warn};
 use std::process::Command;
 
-use crate::util::{
-    mount::{BindMount, Mount, VKFSMount},
-    signal::SignalDispatcher,
+use crate::{
+    error::{Error, ErrorExt},
+    util::{
+        mount::{BindMount, Mount, VKFSMount},
+        signal::SignalDispatcher,
+    },
 };
 
 use super::{Environment, EnvironmentExecutable};
@@ -44,11 +47,13 @@ impl BuildEnvironment {
     pub fn new(
         root_mount: Box<dyn Mount>,
         toolchain_dir: PathBuf,
-    ) -> Result<BuildEnvironment, std::io::Error> {
+    ) -> Result<BuildEnvironment, Error> {
+        let context = || "Creating build environment".to_string();
         let target = root_mount.get_target_path();
 
         // Mount the virtual kernel filesystems
-        let m_dev = BindMount::new(Path::new("/dev"), &target.join("dev"), false)?;
+        let m_dev =
+            BindMount::new(Path::new("/dev"), &target.join("dev"), false).e_context(context)?;
         let m_dev_pts = BindMount::new(
             Path::new("/dev/pts"),
             &target.join("dev").join("pts"),
@@ -89,7 +94,7 @@ impl Environment for BuildEnvironment {
         &self,
         executable: &dyn EnvironmentExecutable,
         signal_dispatcher: &SignalDispatcher,
-    ) -> Result<std::process::ExitStatus, std::io::Error> {
+    ) -> Result<std::process::ExitStatus, Error> {
         let mut command = Command::new("/bin/chroot");
 
         command
@@ -131,7 +136,11 @@ impl Environment for BuildEnvironment {
         }
 
         let executable_name = executable.get_name();
-        let process_arc = Arc::new(Mutex::new(command.spawn()?));
+        let process_arc = Arc::new(Mutex::new(
+            command
+                .spawn()
+                .e_context(|| "Spawing child process".to_owned())?,
+        ));
 
         let handler_arc = process_arc.clone();
 
@@ -149,7 +158,10 @@ impl Environment for BuildEnvironment {
             let mut child = process_arc.lock().expect("Lock mutex");
 
             // If the child has exited, exit here, too
-            if let Some(res) = child.try_wait()? {
+            if let Some(res) = child
+                .try_wait()
+                .e_context(|| "Waiting for child to join".to_owned())?
+            {
                 debug!("Command exited with {}", res);
                 // Release the signal handler
                 drop(guard);

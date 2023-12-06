@@ -8,7 +8,7 @@ const DEFAULT_PACKAGE_INDEX: &str = "/acacia/packages.toml";
 
 /// Build AcaciaLinux packages
 #[derive(Parser)]
-#[command(author = "Max Kofler", name = "builder", version, about = include_str!("about.txt"), long_about = include_str!("long_about.txt"))]
+#[command(author = "Max Kofler", name = "branch", version, about = include_str!("about.txt"), long_about = include_str!("long_about.txt"))]
 pub struct BuilderConfig {
     /// The directory to expect the toolchain binaries at (appended with '/bin' for 'PATH')
     #[arg(long)]

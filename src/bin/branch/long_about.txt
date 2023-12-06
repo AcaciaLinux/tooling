@@ -1,4 +1,4 @@
-The 'builder' tool is used to build AcaciaLinux packages from 'formulae'
+'branch' is used to build AcaciaLinux packages from 'formulae'
 
 ------------------------------
 

@@ -60,17 +60,6 @@ pub trait CorePackage {
     }
 }
 
-/// A fully qualified package has a `real_version`
-pub trait FQPackage: CorePackage {
-    /// Returns the `real_version` of the package
-    fn get_real_version(&self) -> u32;
-
-    /// Returns the fully qualified name for this package: `<arch>-<name>-<version>-<real_version>`
-    fn get_fq_name(&self) -> String {
-        format!("{}-{}", self.get_full_name(), self.get_real_version())
-    }
-}
-
 /// A package that is indexed and can be searched for files
 pub trait IndexedPackage: CorePackage {
     /// Returns the index of the contained files starting from `<pkg_dir>/root`

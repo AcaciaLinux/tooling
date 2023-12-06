@@ -5,7 +5,7 @@ use crate::{
 };
 use std::path::Path;
 
-use super::{BuiltPackage, CorePackage, FQPackage, IndexedPackage};
+use super::{BuiltPackage, CorePackage, IndexedPackage};
 
 /// An installed package
 #[derive(Debug)]
@@ -16,8 +16,6 @@ pub struct InstalledPackage {
     pub version: String,
     /// The architecture
     pub arch: String,
-    /// The real version of the installed package
-    pub real_version: u32,
     /// The description for the package
     pub description: String,
 
@@ -50,7 +48,6 @@ impl InstalledPackage {
             name: pkg_meta.package.name,
             version: pkg_meta.package.version,
             arch: pkg_meta.package.arch,
-            real_version: pkg_meta.package.real_version,
             description: pkg_meta.package.description,
             index: dir,
         })
@@ -71,12 +68,6 @@ impl CorePackage for InstalledPackage {
     }
 }
 
-impl FQPackage for InstalledPackage {
-    fn get_real_version(&self) -> u32 {
-        self.real_version
-    }
-}
-
 impl IndexedPackage for InstalledPackage {
     fn get_index(&self) -> &Directory {
         &self.index
@@ -89,7 +80,6 @@ impl From<BuiltPackage> for InstalledPackage {
             name: value.name,
             version: value.version,
             arch: value.arch,
-            real_version: value.real_version,
             description: value.description,
             index: value.index,
         }

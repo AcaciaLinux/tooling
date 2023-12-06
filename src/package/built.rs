@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use crate::{error::Error, files::formula::FormulaPackage, util::fs::Directory};
 
-use super::{CorePackage, FQPackage, IndexedPackage};
+use super::{CorePackage, IndexedPackage};
 
 /// A package that has been built by the builder and is now ready to be validated
 #[derive(Clone)]
@@ -10,7 +10,6 @@ pub struct BuiltPackage {
     pub name: String,
     pub version: String,
     pub arch: String,
-    pub real_version: u32,
     pub description: String,
 
     pub path: PathBuf,
@@ -31,7 +30,6 @@ impl BuiltPackage {
             name: src.name,
             version: src.version,
             arch,
-            real_version: src.real_version,
             description: src.description,
 
             path: path.to_owned(),
@@ -52,12 +50,6 @@ impl CorePackage for BuiltPackage {
 
     fn get_arch(&self) -> &str {
         &self.arch
-    }
-}
-
-impl FQPackage for BuiltPackage {
-    fn get_real_version(&self) -> u32 {
-        self.real_version
     }
 }
 

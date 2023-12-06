@@ -1,10 +1,7 @@
 //! Data structures to parse a package index file
-use crate::package::PackageIndexProvider;
+use crate::package::{CorePackage, PackageIndexProvider};
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-};
+use std::collections::HashMap;
 
 /// The contents of a package index file
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -23,22 +20,27 @@ pub struct IndexPackage {
     pub arch: String,
 }
 
-impl IndexPackage {
-    pub fn full_name(&self) -> String {
-        format!("{}/{}-{}", self.arch, self.name, self.version)
+impl CorePackage for IndexPackage {
+    fn get_name(&self) -> &str {
+        &self.name
     }
 
-    pub fn path(&self, acacia_dir: &Path) -> PathBuf {
-        acacia_dir
-            .join(&self.arch)
-            .join(&self.name)
-            .join(&self.version)
+    fn get_version(&self) -> &str {
+        &self.version
+    }
+
+    fn get_arch(&self) -> &str {
+        &self.arch
     }
 }
 
-impl<'a> PackageIndexProvider<'a> for PackageIndexFile {
-    fn get_packages(&'a self) -> &'a [IndexPackage] {
+impl PackageIndexProvider for PackageIndexFile {
+    fn get_packages(&self) -> &[IndexPackage] {
         &self.package
+    }
+
+    fn find_package(&self, name: &str) -> Option<&IndexPackage> {
+        self.package.iter().find(|p| p.name == name)
     }
 }
 

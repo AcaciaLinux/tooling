@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use clap::Parser;
+use log::info;
 use tooling::{
     env::CustomExecutable,
     error::{Error, ErrorExt},
@@ -12,11 +13,8 @@ use tooling::{
 mod config;
 use config::BuilderConfig;
 
-fn run(signal_dispatcher: &SignalDispatcher) -> Result<(), Error> {
+fn run(signal_dispatcher: &SignalDispatcher, cli: BuilderConfig) -> Result<(), Error> {
     let context = || "Running the builder".to_string();
-
-    // Parse command line arguments
-    let cli = BuilderConfig::parse();
 
     let arch = cli.get_arch().clone();
     let package_index: PackageIndexFile = parse_toml(&cli.package_index)?;
@@ -50,8 +48,15 @@ fn run(signal_dispatcher: &SignalDispatcher) -> Result<(), Error> {
 }
 
 fn main() {
+    // Parse command line arguments
+    let cli = BuilderConfig::parse();
+
     if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "debug")
+        match &cli.loglevel {
+            0 => std::env::set_var("RUST_LOG", "info"),
+            1 => std::env::set_var("RUST_LOG", "debug"),
+            _ => std::env::set_var("RUST_LOG", "trace"),
+        }
     }
     pretty_env_logger::init();
 
@@ -59,7 +64,7 @@ fn main() {
     let dsp_clone = dispatcher.clone();
     ctrlc::set_handler(move || dsp_clone.handle()).unwrap();
 
-    match run(&dispatcher) {
+    match run(&dispatcher, cli) {
         Ok(()) => {}
         Err(e) => println!("Failed to run builder: {e}"),
     };

@@ -10,6 +10,10 @@ const DEFAULT_PACKAGE_INDEX: &str = "/acacia/packages.toml";
 #[derive(Parser)]
 #[command(author = "Max Kofler", name = "branch", version, about = include_str!("about.txt"), long_about = include_str!("long_about.txt"))]
 pub struct BuilderConfig {
+    /// The loglevel to operate on (0 = info, 1 = debug, * = trace)
+    #[arg(long = "loglevel", short = 'v', default_value_t = 0)]
+    pub loglevel: u8,
+
     /// The directory to expect the toolchain binaries at (appended with '/bin' for 'PATH')
     #[arg(long)]
     pub toolchain: PathBuf,

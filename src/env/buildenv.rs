@@ -1,6 +1,9 @@
 use std::{
+    io::{self},
     path::{Path, PathBuf},
+    process::Stdio,
     sync::{Arc, Mutex},
+    thread,
     time::Duration,
 };
 
@@ -137,43 +140,56 @@ impl Environment for BuildEnvironment {
         }
 
         let executable_name = executable.get_name();
-        let process_arc = Arc::new(Mutex::new(
-            command
-                .spawn()
-                .e_context(|| "Spawing child process".to_owned())?,
-        ));
+        let mut child = command
+            .stdout(Stdio::piped())
+            .spawn()
+            .e_context(|| "Spawing child process".to_owned())?;
+
+        // Get the `stdout` of the child to redirect it
+        let mut child_stdout = child.stdout.take().expect("Stdout");
+
+        let process_arc = Arc::new(Mutex::new(child));
 
         let handler_arc = process_arc.clone();
 
-        // Construct a signal handler that will kill the child process
-        let guard = signal_dispatcher.add_handler(Box::new(move || {
-            match handler_arc.lock().expect("Lock handler mutex").kill() {
-                Ok(_) => warn!("Killed build step '{}'", executable_name),
-                Err(_) => error!("Failed to kill build step {}", executable_name),
+        thread::scope(|s| {
+            // Construct a signal handler that will kill the child process
+            let guard = signal_dispatcher.add_handler(Box::new(move || {
+                match handler_arc.lock().expect("Lock handler mutex").kill() {
+                    Ok(_) => warn!("Killed build step '{}'", executable_name),
+                    Err(_) => error!("Failed to kill build step {}", executable_name),
+                }
+            }));
+
+            // Redirect `stdout` of the child to `stderr`
+            let _redirect_thread = s.spawn(|| {
+                let mut stderr = io::stderr().lock();
+
+                io::copy(&mut child_stdout, &mut stderr).expect("Redirect stderr");
+            });
+
+            // Loop until the child exits
+            loop {
+                // Lock the mutex to query
+                let mut child = process_arc.lock().expect("Lock mutex");
+
+                // If the child has exited, exit here, too
+                if let Some(res) = child
+                    .try_wait()
+                    .e_context(|| "Waiting for child to join".to_owned())?
+                {
+                    debug!("Command exited with {}", res);
+                    // Release the signal handler
+                    drop(guard);
+
+                    return Ok(res);
+                }
+
+                // Drop the mutex to free for the signal handler
+                drop(child);
+                std::thread::sleep(Duration::from_millis(100));
             }
-        }));
-
-        // Loop until the child exits
-        loop {
-            // Lock the mutex to query
-            let mut child = process_arc.lock().expect("Lock mutex");
-
-            // If the child has exited, exit here, too
-            if let Some(res) = child
-                .try_wait()
-                .e_context(|| "Waiting for child to join".to_owned())?
-            {
-                debug!("Command exited with {}", res);
-                // Release the signal handler
-                drop(guard);
-
-                return Ok(res);
-            }
-
-            // Drop the mutex to free for the signal handler
-            drop(child);
-            std::thread::sleep(Duration::from_millis(100));
-        }
+        })
     }
 }
 

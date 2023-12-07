@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use crate::{error::Error, files::formula::FormulaPackage, util::fs::Directory};
 
-use super::{CorePackage, IndexedPackage};
+use super::{CorePackage, IndexedPackage, PathPackage};
 
 /// A package that has been built by the builder and is now ready to be validated
 #[derive(Clone)]
@@ -56,5 +56,11 @@ impl CorePackage for BuiltPackage {
 impl IndexedPackage for BuiltPackage {
     fn get_index(&self) -> &Directory {
         &self.index
+    }
+}
+
+impl PathPackage for BuiltPackage {
+    fn get_real_path(&self) -> PathBuf {
+        self.path.clone()
     }
 }

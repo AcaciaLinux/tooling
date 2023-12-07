@@ -3,9 +3,9 @@ use crate::{
     files::{package_index::IndexPackage, package_meta::PackageFile},
     util::{fs::Directory, parse::parse_toml},
 };
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-use super::{BuiltPackage, CorePackage, IndexedPackage};
+use super::{BuiltPackage, CorePackage, IndexedPackage, PathPackage};
 
 /// An installed package
 #[derive(Debug)]
@@ -18,6 +18,9 @@ pub struct InstalledPackage {
     pub arch: String,
     /// The description for the package
     pub description: String,
+
+    /// The path to where the package lives
+    pub path: PathBuf,
 
     /// An index of all files in the package directory
     pub index: Directory,
@@ -49,6 +52,7 @@ impl InstalledPackage {
             version: pkg_meta.package.version,
             arch: pkg_meta.package.arch,
             description: pkg_meta.package.description,
+            path: pkg_path,
             index: dir,
         })
     }
@@ -74,6 +78,12 @@ impl IndexedPackage for InstalledPackage {
     }
 }
 
+impl PathPackage for InstalledPackage {
+    fn get_real_path(&self) -> PathBuf {
+        self.path.clone()
+    }
+}
+
 impl From<BuiltPackage> for InstalledPackage {
     fn from(value: BuiltPackage) -> Self {
         Self {
@@ -81,6 +91,7 @@ impl From<BuiltPackage> for InstalledPackage {
             version: value.version,
             arch: value.arch,
             description: value.description,
+            path: value.path,
             index: value.index,
         }
     }

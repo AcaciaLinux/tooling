@@ -60,8 +60,14 @@ pub trait CorePackage {
     }
 }
 
+/// A package that has a path to where it lives
+pub trait PathPackage {
+    /// Returns the **real** path to the package without constructing it from a DIST directory
+    fn get_real_path(&self) -> PathBuf;
+}
+
 /// A package that is indexed and can be searched for files
-pub trait IndexedPackage: CorePackage {
+pub trait IndexedPackage: CorePackage + PathPackage {
     /// Returns the index of the contained files starting from `<pkg_dir>/root`
     fn get_index(&self) -> &Directory;
 

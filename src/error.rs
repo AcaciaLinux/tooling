@@ -2,7 +2,7 @@
 
 use std::collections::LinkedList;
 
-use crate::tools::builder::BuilderError;
+use crate::{tools::builder::BuilderError, validators::ValidationError};
 
 mod support;
 
@@ -13,6 +13,7 @@ pub enum ErrorType {
     ELFParse(elf::ParseError),
     TOML(toml::de::Error),
     Builder(BuilderError),
+    Validation(ValidationError),
 }
 
 /// The error struct, containing the error and a context
@@ -77,6 +78,7 @@ impl std::fmt::Display for ErrorType {
             Self::ELFParse(e) => e.fmt(f),
             Self::TOML(e) => e.fmt(f),
             Self::Builder(e) => e.fmt(f),
+            Self::Validation(e) => e.fmt(f),
         }
     }
 }

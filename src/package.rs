@@ -8,6 +8,10 @@ use std::{
 use crate::{
     files::package_index::IndexPackage,
     util::fs::{Directory, SearchType},
+    validators::{
+        indexed_package::{validate_indexed_package, FileValidationResult},
+        ValidationInput,
+    },
 };
 
 mod installed;
@@ -83,5 +87,17 @@ pub trait IndexedPackage: CorePackage + PathPackage {
         self.get_index()
             .find_entry(entry)
             .map(|entry| (entry, self))
+    }
+
+    /// Validates this package by iterating over its index and validating everything
+    /// # Arguments
+    /// * `input` - The validation input
+    /// # Returns
+    /// A vector of file results. If a file has no actions and no errors, it will not be returned
+    fn validate<'a>(&self, input: &'a ValidationInput) -> Vec<FileValidationResult<'a>>
+    where
+        Self: Sized,
+    {
+        validate_indexed_package(self, input)
     }
 }

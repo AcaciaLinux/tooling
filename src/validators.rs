@@ -1,6 +1,7 @@
 //! Tools for validating packages and files to be able to work in the AcaciaLinux system
 
 pub mod elf;
+pub mod indexed_package;
 
 mod error;
 pub use error::*;

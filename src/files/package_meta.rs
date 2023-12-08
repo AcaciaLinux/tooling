@@ -28,6 +28,7 @@ pub struct Package {
 /// A dependency of the package in the package metadata file
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Dependency {
+    pub arch: String,
     pub req_version: String,
     pub lnk_version: Option<String>,
 }

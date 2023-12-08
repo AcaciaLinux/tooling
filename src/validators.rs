@@ -5,12 +5,16 @@ pub mod indexed_package;
 pub mod scripts;
 
 mod error;
+use std::collections::HashMap;
+
 pub use error::*;
 
 use crate::{
     error::Error,
-    package::{DependencyProvider, InstalledPackageIndex, PackageInfo},
+    package::{CorePackage, DependencyProvider, InstalledPackageIndex, PackageInfo},
 };
+
+use self::indexed_package::FileValidationResult;
 
 /// The information required for a validator to work
 pub struct ValidationInput<'a> {
@@ -51,4 +55,23 @@ impl std::fmt::Display for ValidatorAction {
             Self::Script(action) => action.fmt(f),
         }
     }
+}
+
+/// Extracts a list of dependencies from a list of validation results
+///
+/// There will be no duplicates due to an internal hashmap with the full package name as the key
+/// # Arguments
+/// * `results` - A list of results
+pub fn dependencies_from_validation_result(results: &[FileValidationResult]) -> Vec<&PackageInfo> {
+    let mut res: HashMap<String, &PackageInfo> = HashMap::new();
+
+    for result in results {
+        for action in &result.actions {
+            action.get_dependencies().into_iter().for_each(|d| {
+                res.insert(d.get_full_name(), d);
+            });
+        }
+    }
+
+    res.into_iter().map(|s| s.1).collect()
 }

@@ -2,6 +2,7 @@
 
 pub mod elf;
 pub mod indexed_package;
+pub mod scripts;
 
 mod error;
 pub use error::*;
@@ -27,12 +28,15 @@ pub struct ValidationResult<T> {
 pub enum ValidatorAction<'a> {
     /// Perform an action on a `ELF` file
     ELF(elf::ELFAction<'a>),
+    /// Perform an action on a `Script` file
+    Script(scripts::ScriptAction<'a>),
 }
 
 impl<'a> std::fmt::Display for ValidatorAction<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ELF(action) => action.fmt(f),
+            Self::Script(action) => action.fmt(f),
         }
     }
 }

@@ -46,6 +46,23 @@ pub fn validate_indexed_package<'a>(
                         });
                     }
                 }
+                crate::util::fs::FSEntry::Script(script) => {
+                    let path = path.to_path_buf().join(entry.name());
+                    let v_res = script.validate(input);
+
+                    // If there are some results, append them to the return value
+                    if !(v_res.actions.is_empty() && v_res.errors.is_empty()) {
+                        res.push(FileValidationResult {
+                            path,
+                            actions: v_res
+                                .actions
+                                .into_iter()
+                                .map(ValidatorAction::Script)
+                                .collect(),
+                            errors: v_res.errors,
+                        });
+                    }
+                }
                 _ => {}
             }
 

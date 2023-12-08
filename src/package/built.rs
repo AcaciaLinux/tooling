@@ -19,12 +19,14 @@ pub struct BuiltPackage {
 
 impl BuiltPackage {
     /// Constructs a built package from a formula package, the built architecture and the index of its file contents
+    ///
+    /// This will **not** unwind symlinks to prevent double treatment of files
     /// # Arguments
     /// * `src` - The source `FormulaPackage` to construct this package from
     /// * `arch` - The architecture the package has been built for
     /// * `path` - The path to the package, containing the `data/` directory
-    pub fn from_formula(src: FormulaPackage, arch: String, path: &Path) -> Result<Self, Error> {
-        let index = Directory::index(&path.join("data"), true)?;
+    pub fn from_formula(src: FormulaFile, arch: String, path: &Path) -> Result<Self, Error> {
+        let index = Directory::index(&path.join("data"), true, false)?;
 
         Ok(Self {
             name: src.name,

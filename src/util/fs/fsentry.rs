@@ -40,10 +40,15 @@ impl FSEntry {
     /// Tries to infer the type of filesystem entry by using the `infer` crate
     /// # Arguments
     /// * `path` - The path to infer
-    pub fn infer(path: &Path) -> Result<Self, Error> {
+    /// * `do_unwind_symlinks` - If this function should trace symlinks to their destination
+    pub fn infer(path: &Path, do_unwind_symlinks: bool) -> Result<Self, Error> {
         // Store the filename prior to unwinding symlinks, so symlinked files keep their name
         let name = path.file_name().expect("Filename").to_owned();
-        let path = unwind_symlinks(path);
+        let path = if do_unwind_symlinks {
+            unwind_symlinks(path)
+        } else {
+            path.to_owned()
+        };
 
         if path.is_symlink() {
             trace!("[infer] SLNK: {}", path.to_string_lossy());

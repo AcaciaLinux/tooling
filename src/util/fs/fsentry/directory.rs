@@ -24,12 +24,13 @@ impl Directory {
     /// # Arguments
     /// * `path` - The path to walk
     /// * `recursive` - If this function should operate recursively
+    /// * `do_unwind_symlinks` - If this function should unwind symlinks to their real destination
     /// # Errors
     /// Uses the std::fs::read_dir() function which will error on:
     /// - The `path` does not exist
     /// - Permission is denied
     /// - The `path` is not a directory
-    pub fn index(path: &Path, recursive: bool) -> Result<Self, Error> {
+    pub fn index(path: &Path, recursive: bool, do_unwind_symlinks: bool) -> Result<Self, Error> {
         let mut index = Self {
             name: path.file_name().unwrap_or_default().to_owned(),
             children: Vec::new(),
@@ -45,12 +46,12 @@ impl Directory {
             // Do only walk a subdirectory if it is not a symlink
             if !path.is_symlink() && path.is_dir() && recursive {
                 index.children.push(FSEntry::Directory(
-                    Directory::index(&path, recursive)
+                    Directory::index(&path, recursive, do_unwind_symlinks)
                         .e_context(|| format!("Indexing {}", &path.to_string_lossy()))?,
                 ));
             } else {
                 index.children.push(
-                    FSEntry::infer(&path)
+                    FSEntry::infer(&path, do_unwind_symlinks)
                         .e_context(|| format!("Inferring type of {}", &path.to_string_lossy()))?,
                 );
             }

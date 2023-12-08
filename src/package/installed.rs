@@ -28,6 +28,9 @@ pub struct InstalledPackage {
 
 impl InstalledPackage {
     /// Creates a new `InstalledPackage` from a `IndexPackage` by parsing the package metadata file and indexing the `root` directory
+    ///
+    /// An installed package will unwind symlinks, so symlinks to ELF files get treated as ELF files to ensure
+    /// discoverability by validators
     /// # Arguments
     /// * `index_pkg` - The IndexPackage to use for information on where to find the package
     /// * `acacia_dir` - The path to the `/acacia` directory to search for packages
@@ -45,7 +48,7 @@ impl InstalledPackage {
         let pkg_meta_path = pkg_path.join("package.toml");
         let pkg_meta: PackageFile = parse_toml(&pkg_meta_path).e_context(context)?;
 
-        let dir = Directory::index(&pkg_path.join("root"), true).e_context(context)?;
+        let dir = Directory::index(&pkg_path.join("root"), true, true).e_context(context)?;
 
         Ok(Self {
             name: pkg_meta.package.name,

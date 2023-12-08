@@ -25,14 +25,14 @@ pub struct ValidationResult<T> {
 
 /// The possible actions to take according to a validator
 #[derive(Clone)]
-pub enum ValidatorAction<'a> {
+pub enum ValidatorAction {
     /// Perform an action on a `ELF` file
-    ELF(elf::ELFAction<'a>),
+    ELF(elf::ELFAction),
     /// Perform an action on a `Script` file
-    Script(scripts::ScriptAction<'a>),
+    Script(scripts::ScriptAction),
 }
 
-impl<'a> std::fmt::Display for ValidatorAction<'a> {
+impl std::fmt::Display for ValidatorAction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ELF(action) => action.fmt(f),

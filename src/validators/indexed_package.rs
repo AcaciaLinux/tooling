@@ -4,11 +4,11 @@ use crate::{error::Error, package::IndexedPackage, util::fs::ToPathBuf};
 use std::{collections::LinkedList, path::PathBuf};
 
 /// The validation result attached to a file
-pub struct FileValidationResult<'a> {
+pub struct FileValidationResult {
     /// The path to the file that was validated
     pub path: PathBuf,
     /// The actions to take
-    pub actions: Vec<ValidatorAction<'a>>,
+    pub actions: Vec<ValidatorAction>,
     /// The errors that occured
     pub errors: Vec<Error>,
 }
@@ -19,10 +19,10 @@ pub struct FileValidationResult<'a> {
 /// * `input` - The validation input
 /// # Returns
 /// A vector of file results. If a file has no actions and no errors, it will not be returned
-pub fn validate_indexed_package<'a>(
+pub fn validate_indexed_package(
     package: &dyn IndexedPackage,
-    input: &'a ValidationInput,
-) -> Vec<FileValidationResult<'a>> {
+    input: &ValidationInput,
+) -> Vec<FileValidationResult> {
     let mut res = Vec::new();
 
     package

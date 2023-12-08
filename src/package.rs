@@ -106,7 +106,7 @@ pub trait IndexedPackage: CorePackage + PathPackage {
     /// * `input` - The validation input
     /// # Returns
     /// A vector of file results. If a file has no actions and no errors, it will not be returned
-    fn validate<'a>(&self, input: &'a ValidationInput) -> Vec<FileValidationResult<'a>>
+    fn validate(&self, input: &ValidationInput) -> Vec<FileValidationResult>
     where
         Self: Sized,
     {

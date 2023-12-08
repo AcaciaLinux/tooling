@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use crate::{
     error::Throwable,
-    package::IndexedPackage,
+    package::{CorePackage, PackageInfo},
     util::fs::{ELFFile, SearchType, ToPathBuf},
 };
 
@@ -15,7 +15,7 @@ impl ELFFile {
     /// - Modify the `RUNPATH`s to be able to link against shared libraries
     /// # Arguments
     /// * `input` - The `ValidationInput` to work correctly
-    pub fn validate<'a>(&self, info: &'a ValidationInput) -> ValidationResult<ELFAction<'a>> {
+    pub fn validate(&self, info: &ValidationInput) -> ValidationResult<ELFAction> {
         let mut actions = Vec::new();
         let mut errors = Vec::new();
 
@@ -25,7 +25,7 @@ impl ELFFile {
                 if let Some(result) = info.package_index.find_fs_entry(&SearchType::ELF(filename)) {
                     actions.push(ELFAction::SetInterpreter {
                         interpreter: result.0.to_path_buf(),
-                        package: result.1,
+                        package: result.1.get_info(),
                     })
                 } else {
                     errors.push(
@@ -48,7 +48,7 @@ impl ELFFile {
                 path.pop();
                 actions.push(ELFAction::AddRunPath {
                     runpath: path,
-                    package: result.1,
+                    package: result.1.get_info(),
                 })
             } else {
                 errors.push(
@@ -66,24 +66,24 @@ impl ELFFile {
 
 /// An action to perform on an ELF file
 #[derive(Clone)]
-pub enum ELFAction<'a> {
+pub enum ELFAction {
     /// Set the `interpreter` available in `package`
     SetInterpreter {
         /// The interpreter to set
         interpreter: PathBuf,
         /// The package holding the interpreter (the dependency)
-        package: &'a dyn IndexedPackage,
+        package: PackageInfo,
     },
     /// Add a `runpath` available in `package`
     AddRunPath {
         /// The RUNPATH to add
         runpath: PathBuf,
         /// The package holding the RUNPATH (the dependency)
-        package: &'a dyn IndexedPackage,
+        package: PackageInfo,
     },
 }
 
-impl<'a> std::fmt::Display for ELFAction<'a> {
+impl std::fmt::Display for ELFAction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::SetInterpreter {

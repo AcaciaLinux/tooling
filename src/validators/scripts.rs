@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use crate::{
     error::{Error, Throwable},
-    package::IndexedPackage,
+    package::{CorePackage, PackageInfo},
     util::fs::{ScriptFile, SearchType, ToPathBuf},
 };
 
@@ -14,7 +14,7 @@ impl ScriptFile {
     /// - Make sure the `interpreter` is linkable and modify the path for the correct location
     /// # Arguments
     /// * `input` - The `ValidationInput` to work correctly
-    pub fn validate<'a>(&self, input: &'a ValidationInput) -> ValidationResult<ScriptAction<'a>> {
+    pub fn validate(&self, input: &ValidationInput) -> ValidationResult<ScriptAction> {
         let mut actions: Vec<ScriptAction> = Vec::new();
         let mut errors: Vec<Error> = Vec::new();
 
@@ -27,7 +27,7 @@ impl ScriptFile {
                 {
                     actions.push(ScriptAction::ReplaceInterpreter {
                         interpreter: (old_interpreter.0.clone(), result.0.to_path_buf()),
-                        package: result.1,
+                        package: result.1.get_info(),
                     })
                 } else {
                     errors.push(
@@ -46,17 +46,17 @@ impl ScriptFile {
 
 /// An action to perform on a Script file
 #[derive(Clone)]
-pub enum ScriptAction<'a> {
+pub enum ScriptAction {
     /// Set the `interpreter` available in `package`
     ReplaceInterpreter {
         /// The old and the new interpreter
         interpreter: (PathBuf, PathBuf),
         /// The package holding the interpreter (the dependency)
-        package: &'a dyn IndexedPackage,
+        package: PackageInfo,
     },
 }
 
-impl<'a> std::fmt::Display for ScriptAction<'a> {
+impl std::fmt::Display for ScriptAction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ReplaceInterpreter {

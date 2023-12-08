@@ -4,6 +4,8 @@ use std::collections::LinkedList;
 
 use crate::{tools::builder::BuilderError, validators::ValidationError};
 
+use self::support::TOMLError;
+
 mod support;
 
 /// The type of error at hand
@@ -11,7 +13,7 @@ mod support;
 pub enum ErrorType {
     IO(std::io::Error),
     ELFParse(elf::ParseError),
-    TOML(toml::de::Error),
+    TOML(TOMLError),
     Builder(BuilderError),
     Validation(ValidationError),
 }

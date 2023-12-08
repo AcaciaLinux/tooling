@@ -15,11 +15,16 @@ pub use directory::*;
 mod elf;
 pub use elf::*;
 
+mod script;
+pub use script::*;
+
 /// A filesystem entry
 #[derive(Clone)]
 pub enum FSEntry {
     /// An ELF file
     ELF(ELFFile),
+    /// A script file
+    Script(ScriptFile),
     /// A symlink
     Symlink(OsString),
     /// Some other file
@@ -67,6 +72,14 @@ impl FSEntry {
                             .e_context(|| format!("Parsing ELF file {}", path.to_string_lossy()))?;
 
                         return Ok(Self::ELF(f));
+                    } else if infer::text::is_shellscript(&buf) {
+                        trace!("[infer] SCR : {}", &path.to_string_lossy());
+
+                        let f = ScriptFile::parse(&path, name).e_context(|| {
+                            format!("Parsing SCRIPT file {}", path.to_string_lossy())
+                        })?;
+
+                        return Ok(Self::Script(f));
                     }
                 }
             }
@@ -82,6 +95,7 @@ impl FSEntry {
     pub fn name(&self) -> &OsStr {
         match self {
             Self::ELF(n) => &n.name,
+            Self::Script(n) => &n.name,
             Self::Symlink(n) => n,
             Self::OtherFile(n) => n,
             Self::Directory(d) => &d.name,

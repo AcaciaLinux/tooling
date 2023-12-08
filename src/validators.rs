@@ -7,7 +7,10 @@ pub mod scripts;
 mod error;
 pub use error::*;
 
-use crate::{error::Error, package::InstalledPackageIndex};
+use crate::{
+    error::Error,
+    package::{DependencyProvider, InstalledPackageIndex, PackageInfo},
+};
 
 /// The information required for a validator to work
 pub struct ValidationInput<'a> {
@@ -30,6 +33,15 @@ pub enum ValidatorAction {
     ELF(elf::ELFAction),
     /// Perform an action on a `Script` file
     Script(scripts::ScriptAction),
+}
+
+impl DependencyProvider for ValidatorAction {
+    fn get_dependencies(&self) -> Vec<&PackageInfo> {
+        match self {
+            Self::ELF(e) => e.get_dependencies(),
+            Self::Script(s) => s.get_dependencies(),
+        }
+    }
 }
 
 impl std::fmt::Display for ValidatorAction {

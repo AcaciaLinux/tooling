@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use crate::{
     error::Throwable,
-    package::{CorePackage, PackageInfo},
+    package::{CorePackage, DependencyProvider, PackageInfo},
     util::fs::{ELFFile, SearchType, ToPathBuf},
 };
 
@@ -81,6 +81,21 @@ pub enum ELFAction {
         /// The package holding the RUNPATH (the dependency)
         package: PackageInfo,
     },
+}
+
+impl DependencyProvider for ELFAction {
+    fn get_dependencies(&self) -> Vec<&PackageInfo> {
+        match self {
+            Self::SetInterpreter {
+                interpreter: _,
+                package,
+            } => vec![package],
+            Self::AddRunPath {
+                runpath: _,
+                package,
+            } => vec![package],
+        }
+    }
 }
 
 impl std::fmt::Display for ELFAction {

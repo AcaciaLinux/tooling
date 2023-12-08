@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use crate::{
     error::{Error, Throwable},
-    package::{CorePackage, PackageInfo},
+    package::{CorePackage, DependencyProvider, PackageInfo},
     util::fs::{ScriptFile, SearchType, ToPathBuf},
 };
 
@@ -54,6 +54,17 @@ pub enum ScriptAction {
         /// The package holding the interpreter (the dependency)
         package: PackageInfo,
     },
+}
+
+impl DependencyProvider for ScriptAction {
+    fn get_dependencies(&self) -> Vec<&PackageInfo> {
+        match self {
+            Self::ReplaceInterpreter {
+                interpreter: _,
+                package,
+            } => vec![package],
+        }
+    }
 }
 
 impl std::fmt::Display for ScriptAction {

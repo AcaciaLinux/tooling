@@ -82,6 +82,12 @@ pub trait PathPackage {
     fn get_real_path(&self) -> PathBuf;
 }
 
+/// Something that can provide a list of dependencies
+pub trait DependencyProvider {
+    /// Returns all the needed dependencies
+    fn get_dependencies(&self) -> Vec<&PackageInfo>;
+}
+
 /// A package that is indexed and can be searched for files
 pub trait IndexedPackage: CorePackage + PathPackage {
     /// Returns the index of the contained files starting from `<pkg_dir>/root`

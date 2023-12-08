@@ -23,6 +23,9 @@ pub use built::*;
 mod installed_index;
 pub use installed_index::*;
 
+mod info;
+pub use info::*;
+
 /// A provider for `IndexPackage`s
 pub trait PackageIndexProvider {
     /// Returns the array of `IndexPackage`s the struct provides
@@ -61,6 +64,15 @@ pub trait CorePackage {
             self.get_name(),
             self.get_version()
         )
+    }
+
+    /// Generates a `PackageInfo` from this package to provide a portable description
+    fn get_info(&self) -> PackageInfo {
+        PackageInfo {
+            name: self.get_name().to_owned(),
+            version: self.get_version().to_string(),
+            arch: self.get_arch().to_string(),
+        }
     }
 }
 

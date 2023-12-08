@@ -199,7 +199,7 @@ impl Builder {
         }
 
         BuiltPackage::from_formula(
-            self.formula.package.clone(),
+            self.formula.clone(),
             self.arch.clone(),
             &self.destdir_outer_path(),
         )

@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::{error::Error, files::formula::FormulaPackage, util::fs::Directory};
+use crate::{error::Error, files::formula::FormulaFile, util::fs::Directory};
 
 use super::{CorePackage, IndexedPackage, PathPackage};
 
@@ -11,6 +11,8 @@ pub struct BuiltPackage {
     pub version: String,
     pub arch: String,
     pub description: String,
+
+    pub formula: FormulaFile,
 
     pub path: PathBuf,
 
@@ -29,10 +31,12 @@ impl BuiltPackage {
         let index = Directory::index(&path.join("data"), true, false)?;
 
         Ok(Self {
-            name: src.name,
-            version: src.version,
+            name: src.package.name.clone(),
+            version: src.package.version.clone(),
             arch,
-            description: src.description,
+            description: src.package.description.clone(),
+
+            formula: src,
 
             path: path.to_owned(),
 

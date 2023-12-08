@@ -18,6 +18,7 @@ use crate::{
         parse::parse_toml,
         signal::SignalDispatcher,
     },
+    validators::{indexed_package::FileValidationResult, ValidationInput},
 };
 
 /// A template struct that can be used to instantiate `Builder`s
@@ -151,10 +152,17 @@ impl Builder {
         })
     }
 
-    /// Executes the build job by calling all the build steps in sequence
+    /// Executes the build job by calling all the build steps in sequence and validates the package
+    ///
+    /// This will run the whole chain of build events to produce a `BuildPackage`
     /// # Arguments
     /// * `signal_dispatcher` - The signal dispatcher to use for handing signals
-    pub fn build(&self, signal_dispatcher: &SignalDispatcher) -> Result<BuiltPackage, Error> {
+    /// # Returns
+    /// The `BuiltPackage` and a vector of validation results for the package, else a fatal error
+    pub fn build(
+        &self,
+        signal_dispatcher: &SignalDispatcher,
+    ) -> Result<(BuiltPackage, Vec<FileValidationResult>), Error> {
         let context = || {
             format!(
                 "Building package {}",
@@ -198,10 +206,15 @@ impl Builder {
             }
         }
 
-        BuiltPackage::from_formula(
+        let validation_input = ValidationInput {
+            package_index: &self.target_dependency_index,
+        };
+
+        BuiltPackage::from_formula_validate(
             self.formula.clone(),
             self.arch.clone(),
             &self.destdir_outer_path(),
+            &validation_input,
         )
     }
 

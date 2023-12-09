@@ -7,3 +7,4 @@ pub mod fs;
 pub mod mount;
 pub mod parse;
 pub mod signal;
+pub mod string;

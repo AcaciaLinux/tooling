@@ -29,3 +29,7 @@ curl = { version = "0.4.44", default-features = false, features = [
     "ssl",
 ] }
 http = "1.0.0"
+
+tar = "0.4.40"
+xz = "0.1.0"
+flate2 = "1.0.28"

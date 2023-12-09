@@ -10,34 +10,34 @@ static CUR_VERSION: u32 = 1;
 
 /// The contents of a package meta file
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PackageFile {
+pub struct PackageMetaFile {
     /// The version of the file
     pub version: u32,
 
     /// The package this file describes
-    pub package: Package,
+    pub package: PackageMeta,
 }
 
 /// A package in the package metadata file
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct Package {
+pub struct PackageMeta {
     pub name: String,
     pub version: String,
     pub arch: String,
     pub description: String,
 
-    pub dependencies: HashMap<String, Dependency>,
+    pub dependencies: HashMap<String, PackageMetaDependency>,
 }
 
 /// A dependency of the package in the package metadata file
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct Dependency {
+pub struct PackageMetaDependency {
     pub arch: String,
     pub req_version: String,
     pub lnk_version: Option<String>,
 }
 
-impl PackageFile {
+impl PackageMetaFile {
     /// Generates a package metadata file from a package that meets the requirements
     /// # Arguments
     /// * `in_package` - The package to generate this file from
@@ -51,7 +51,7 @@ impl PackageFile {
             let dep = dep.clone();
             dependencies.insert(
                 dep.name,
-                Dependency {
+                PackageMetaDependency {
                     arch: dep.arch,
                     req_version: dep.version.clone(),
                     lnk_version: Some(dep.version),
@@ -60,7 +60,7 @@ impl PackageFile {
         }
 
         // Create the package metadata
-        let package = Package {
+        let package = PackageMeta {
             name: in_package.get_name().to_owned(),
             version: in_package.get_version().to_owned(),
             arch: in_package.get_arch().to_owned(),

@@ -1,6 +1,6 @@
 use crate::{
     error::{Error, ErrorExt},
-    files::{package_index::IndexPackage, package_meta::PackageFile},
+    files::{package_index::IndexPackage, package_meta::PackageMetaFile},
     util::{fs::Directory, parse::parse_toml},
 };
 use std::path::{Path, PathBuf};
@@ -46,7 +46,7 @@ impl InstalledPackage {
         };
 
         let pkg_meta_path = pkg_path.join("package.toml");
-        let pkg_meta: PackageFile = parse_toml(&pkg_meta_path).e_context(context)?;
+        let pkg_meta: PackageMetaFile = parse_toml(&pkg_meta_path).e_context(context)?;
 
         let dir = Directory::index(&pkg_path.join("root"), true, true).e_context(context)?;
 

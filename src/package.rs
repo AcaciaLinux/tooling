@@ -23,6 +23,9 @@ pub use built::*;
 mod installed_index;
 pub use installed_index::*;
 
+mod installable;
+pub use installable::*;
+
 mod info;
 pub use info::*;
 

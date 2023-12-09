@@ -3,6 +3,11 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::package::{CorePackage, DependencyProvider, DescribedPackage};
+
+/// The current version for the package meta file
+static CUR_VERSION: u32 = 1;
+
 /// The contents of a package meta file
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PackageFile {
@@ -19,7 +24,6 @@ pub struct Package {
     pub name: String,
     pub version: String,
     pub arch: String,
-    pub real_version: u32,
     pub description: String,
 
     pub dependencies: HashMap<String, Dependency>,
@@ -31,4 +35,42 @@ pub struct Dependency {
     pub arch: String,
     pub req_version: String,
     pub lnk_version: Option<String>,
+}
+
+impl PackageFile {
+    /// Generates a package metadata file from a package that meets the requirements
+    /// # Arguments
+    /// * `in_package` - The package to generate this file from
+    pub fn from_package<T>(in_package: &T) -> Self
+    where
+        T: CorePackage + DescribedPackage + DependencyProvider,
+    {
+        // Take all dependencies and make their versions the required and the linked ones
+        let mut dependencies = HashMap::new();
+        for dep in in_package.get_dependencies() {
+            let dep = dep.clone();
+            dependencies.insert(
+                dep.name,
+                Dependency {
+                    arch: dep.arch,
+                    req_version: dep.version.clone(),
+                    lnk_version: Some(dep.version),
+                },
+            );
+        }
+
+        // Create the package metadata
+        let package = Package {
+            name: in_package.get_name().to_owned(),
+            version: in_package.get_version().to_owned(),
+            arch: in_package.get_arch().to_owned(),
+            description: in_package.get_description().to_string(),
+            dependencies,
+        };
+
+        Self {
+            version: CUR_VERSION,
+            package,
+        }
+    }
 }

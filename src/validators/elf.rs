@@ -1,9 +1,10 @@
 //! Validators for `ELFFile` and general ELF-related stuff
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::{
-    error::Throwable,
-    package::{CorePackage, DependencyProvider, PackageInfo},
+    assert_absolute,
+    error::{Error, ErrorExt, Throwable},
+    package::{CorePackage, DependencyProvider, PackageInfo, PathPackage},
     util::fs::{ELFFile, SearchType, ToPathBuf},
 };
 
@@ -81,6 +82,58 @@ pub enum ELFAction {
         /// The package holding the RUNPATH (the dependency)
         package: PackageInfo,
     },
+}
+
+impl ELFAction {
+    /// Converts this action to a command that can be executed
+    /// # Arguments
+    /// * `file` - The file to execute the action on
+    /// * `target_package` - The package providing the `file`
+    /// * `dist_dir` - The **ABSOLUTE** path to the `dist` directory
+    /// # Returns
+    /// The command in string form or an error
+    pub fn to_command<T>(
+        &self,
+        file: &Path,
+        target_package: &T,
+        dist_dir: &Path,
+    ) -> Result<String, Error>
+    where
+        T: CorePackage + PathPackage,
+    {
+        let dist_dir = assert_absolute!(dist_dir)
+            .e_context(|| format!("Converting action \"{}\" to executable command", self))?;
+
+        Ok(match self {
+            Self::SetInterpreter {
+                interpreter,
+                package,
+            } => {
+                let dest = target_package
+                    .get_path(dist_dir)
+                    .join("link")
+                    .join(package.get_name())
+                    .join(interpreter);
+                format!(
+                    "patchelf --set-interpreter {} {}",
+                    dest.to_string_lossy(),
+                    target_package.get_real_path().join(file).to_string_lossy()
+                )
+            }
+            Self::AddRunPath { runpath, package } => {
+                let dest = target_package
+                    .get_path(dist_dir)
+                    .join("link")
+                    .join(package.get_name())
+                    .join(runpath);
+                format!(
+                    "patchelf --add-rpath {} {}",
+                    dest.to_string_lossy(),
+                    target_package.get_real_path().join(file).to_string_lossy()
+                )
+            }
+        })
+    }
 }
 
 impl DependencyProvider for ELFAction {

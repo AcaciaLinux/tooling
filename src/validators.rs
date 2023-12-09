@@ -5,13 +5,13 @@ pub mod indexed_package;
 pub mod scripts;
 
 mod error;
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 
 pub use error::*;
 
 use crate::{
     error::Error,
-    package::{CorePackage, DependencyProvider, InstalledPackageIndex, PackageInfo},
+    package::{CorePackage, DependencyProvider, InstalledPackageIndex, PackageInfo, PathPackage},
 };
 
 use self::indexed_package::FileValidationResult;
@@ -37,6 +37,30 @@ pub enum ValidatorAction {
     ELF(elf::ELFAction),
     /// Perform an action on a `Script` file
     Script(scripts::ScriptAction),
+}
+
+impl ValidatorAction {
+    /// Converts this action to a command that can be executed
+    /// # Arguments
+    /// * `file` - The file to execute the action on
+    /// * `target_package` - The package providing the `file`
+    /// * `dist_dir` - The **ABSOLUTE** path to the `dist` directory
+    /// # Returns
+    /// The command in string form or an error
+    pub fn to_command<T>(
+        &self,
+        file: &Path,
+        target_package: &T,
+        dist_dir: &Path,
+    ) -> Result<String, Error>
+    where
+        T: CorePackage + PathPackage,
+    {
+        match self {
+            Self::ELF(a) => a.to_command(file, target_package, dist_dir),
+            Self::Script(a) => a.to_command(file, target_package, dist_dir),
+        }
+    }
 }
 
 impl DependencyProvider for ValidatorAction {

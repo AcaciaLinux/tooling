@@ -1,9 +1,10 @@
 //! Validators for `Script`s
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::{
-    error::{Error, Throwable},
-    package::{CorePackage, DependencyProvider, PackageInfo},
+    assert_absolute,
+    error::{Error, ErrorExt, Throwable},
+    package::{CorePackage, DependencyProvider, PackageInfo, PathPackage},
     util::fs::{ScriptFile, SearchType, ToPathBuf},
 };
 
@@ -54,6 +55,48 @@ pub enum ScriptAction {
         /// The package holding the interpreter (the dependency)
         package: PackageInfo,
     },
+}
+
+impl ScriptAction {
+    /// Converts this action to a command that can be executed
+    /// # Arguments
+    /// * `file` - The file to execute the action on
+    /// * `target_package` - The package providing the `file`
+    /// * `dist_dir` - The **ABSOLUTE** path to the `dist` directory
+    /// # Returns
+    /// The command in string form or an error
+    pub fn to_command<T>(
+        &self,
+        file: &Path,
+        target_package: &T,
+        dist_dir: &Path,
+    ) -> Result<String, Error>
+    where
+        T: CorePackage + PathPackage,
+    {
+        let dist_dir = assert_absolute!(dist_dir)
+            .e_context(|| format!("Converting action \"{}\" to executable command", self))?;
+
+        Ok(match self {
+            Self::ReplaceInterpreter {
+                interpreter,
+                package,
+            } => {
+                let dest = target_package
+                    .get_path(dist_dir)
+                    .join("link")
+                    .join(package.get_name())
+                    .join(&interpreter.1);
+
+                format!(
+                    "sed -i'' '1s/{}/{}/' {}",
+                    interpreter.0.to_string_lossy().replace('/', "\\/"),
+                    dest.to_string_lossy().replace('/', "\\/"),
+                    target_package.get_real_path().join(file).to_string_lossy()
+                )
+            }
+        })
+    }
 }
 
 impl DependencyProvider for ScriptAction {

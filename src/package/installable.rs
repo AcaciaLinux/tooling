@@ -11,8 +11,9 @@ use crate::{
 };
 
 use super::{
-    BuildIDProvider, BuiltPackage, CorePackage, DependencyProvider, DescribedPackage,
-    IndexedPackage, PackageInfo, PathPackage,
+    ArchitecturePackage, BuildIDProvider, BuiltPackage, CorePackage, DependencyProvider,
+    DescribedPackage, IndexedPackage, NameVersionPackage, NamedPackage, PackageInfo, PathPackage,
+    VersionedPackage,
 };
 
 /// A package that is ready to be installed and deployed
@@ -97,19 +98,27 @@ impl InstallablePackage {
     }
 }
 
-impl CorePackage for InstallablePackage {
+impl NamedPackage for InstallablePackage {
     fn get_name(&self) -> &str {
         &self.name
     }
+}
 
+impl VersionedPackage for InstallablePackage {
     fn get_version(&self) -> &str {
         &self.version
     }
+}
 
+impl ArchitecturePackage for InstallablePackage {
     fn get_arch(&self) -> &str {
         &self.arch
     }
 }
+
+impl NameVersionPackage for InstallablePackage {}
+
+impl CorePackage for InstallablePackage {}
 
 impl IndexedPackage for InstallablePackage {
     fn get_index(&self) -> &Directory {

@@ -42,15 +42,36 @@ pub trait PackageIndexProvider {
     fn find_package(&self, name: &str) -> Option<&IndexPackage>;
 }
 
-/// The minimal trait to be considered a package
-pub trait CorePackage {
+/// A package that has a name
+pub trait NamedPackage {
     /// Returns the `name` of the package
     fn get_name(&self) -> &str;
+}
+
+/// A package that has a version
+pub trait VersionedPackage {
     /// Returns the `version` of the package
     fn get_version(&self) -> &str;
+}
+
+/// A package that has an architecture
+pub trait ArchitecturePackage {
     /// Returns the `architecture` of the package
     fn get_arch(&self) -> &str;
+}
 
+/// A package that provides only a name and a version
+pub trait NameVersionPackage: NamedPackage + VersionedPackage {
+    /// Returns the name and version for this package: `<name>-<version>`
+    fn get_name_version(&self) -> String {
+        format!("{}-{}", self.get_name(), self.get_version())
+    }
+}
+
+/// The minimal trait to be considered a package
+pub trait CorePackage:
+    NamedPackage + VersionedPackage + ArchitecturePackage + NameVersionPackage
+{
     /// Returns the path to the package when it is installed: `<DIST_DIR>/<arch>/<name>/<version>`
     fn get_path(&self, dist_dir: &Path) -> PathBuf {
         dist_dir
@@ -61,12 +82,7 @@ pub trait CorePackage {
 
     /// Returns the full name for this package: `<arch>-<name>-<version>`
     fn get_full_name(&self) -> String {
-        format!(
-            "{}-{}-{}",
-            self.get_arch(),
-            self.get_name(),
-            self.get_version()
-        )
+        format!("{}-{}", self.get_arch(), self.get_name_version())
     }
 
     /// Generates a `PackageInfo` from this package to provide a portable description

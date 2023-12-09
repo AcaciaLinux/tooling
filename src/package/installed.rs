@@ -5,7 +5,10 @@ use crate::{
 };
 use std::path::{Path, PathBuf};
 
-use super::{BuiltPackage, CorePackage, DescribedPackage, IndexedPackage, PathPackage};
+use super::{
+    ArchitecturePackage, BuiltPackage, CorePackage, DescribedPackage, IndexedPackage,
+    NameVersionPackage, NamedPackage, PathPackage, VersionedPackage,
+};
 
 /// An installed package
 #[derive(Debug)]
@@ -61,19 +64,27 @@ impl InstalledPackage {
     }
 }
 
-impl CorePackage for InstalledPackage {
+impl NamedPackage for InstalledPackage {
     fn get_name(&self) -> &str {
         &self.name
     }
+}
 
+impl VersionedPackage for InstalledPackage {
     fn get_version(&self) -> &str {
         &self.version
     }
+}
 
+impl ArchitecturePackage for InstalledPackage {
     fn get_arch(&self) -> &str {
         &self.arch
     }
 }
+
+impl NameVersionPackage for InstalledPackage {}
+
+impl CorePackage for InstalledPackage {}
 
 impl IndexedPackage for InstalledPackage {
     fn get_index(&self) -> &Directory {

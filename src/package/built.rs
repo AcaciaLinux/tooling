@@ -10,8 +10,8 @@ use crate::{
 };
 
 use super::{
-    BuildIDProvider, CorePackage, DependencyProvider, DescribedPackage, IndexedPackage,
-    PackageInfo, PathPackage,
+    ArchitecturePackage, BuildIDProvider, CorePackage, DependencyProvider, DescribedPackage,
+    IndexedPackage, NameVersionPackage, NamedPackage, PackageInfo, PathPackage, VersionedPackage,
 };
 
 /// A package that has been built by the builder and is now ready to be validated
@@ -84,19 +84,27 @@ impl BuiltPackage {
     }
 }
 
-impl CorePackage for BuiltPackage {
+impl NamedPackage for BuiltPackage {
     fn get_name(&self) -> &str {
         &self.name
     }
+}
 
+impl VersionedPackage for BuiltPackage {
     fn get_version(&self) -> &str {
         &self.version
     }
+}
 
+impl ArchitecturePackage for BuiltPackage {
     fn get_arch(&self) -> &str {
         &self.arch
     }
 }
+
+impl NameVersionPackage for BuiltPackage {}
+
+impl CorePackage for BuiltPackage {}
 
 impl IndexedPackage for BuiltPackage {
     fn get_index(&self) -> &Directory {

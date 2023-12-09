@@ -1,4 +1,4 @@
-use super::CorePackage;
+use super::{ArchitecturePackage, CorePackage, NameVersionPackage, NamedPackage, VersionedPackage};
 
 /// Describes a package, just the neccessary stuff
 #[derive(Clone, Debug)]
@@ -11,16 +11,24 @@ pub struct PackageInfo {
     pub arch: String,
 }
 
-impl CorePackage for PackageInfo {
+impl NamedPackage for PackageInfo {
     fn get_name(&self) -> &str {
         &self.name
     }
+}
 
+impl VersionedPackage for PackageInfo {
     fn get_version(&self) -> &str {
         &self.version
     }
+}
 
+impl ArchitecturePackage for PackageInfo {
     fn get_arch(&self) -> &str {
         &self.arch
     }
 }
+
+impl NameVersionPackage for PackageInfo {}
+
+impl CorePackage for PackageInfo {}

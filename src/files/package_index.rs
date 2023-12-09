@@ -1,5 +1,8 @@
 //! Data structures to parse a package index file
-use crate::package::{CorePackage, PackageIndexProvider};
+use crate::package::{
+    ArchitecturePackage, CorePackage, NameVersionPackage, NamedPackage, PackageIndexProvider,
+    VersionedPackage,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -20,19 +23,27 @@ pub struct IndexPackage {
     pub arch: String,
 }
 
-impl CorePackage for IndexPackage {
+impl NamedPackage for IndexPackage {
     fn get_name(&self) -> &str {
         &self.name
     }
+}
 
+impl VersionedPackage for IndexPackage {
     fn get_version(&self) -> &str {
         &self.version
     }
+}
 
+impl ArchitecturePackage for IndexPackage {
     fn get_arch(&self) -> &str {
         &self.arch
     }
 }
+
+impl NameVersionPackage for IndexPackage {}
+
+impl CorePackage for IndexPackage {}
 
 impl PackageIndexProvider for PackageIndexFile {
     fn get_packages(&self) -> &[IndexPackage] {

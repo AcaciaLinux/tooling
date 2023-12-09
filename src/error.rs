@@ -93,7 +93,7 @@ impl std::error::Error for Error {}
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Failed while")?;
+        write!(f, "{} while", self.error)?;
         for (i, context) in self.context.iter().enumerate() {
             write!(f, "\n{}-- {}:", "  ".repeat(i), context)?
         }

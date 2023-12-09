@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::package::{CorePackage, DependencyProvider, DescribedPackage};
+use crate::package::{BuildIDProvider, CorePackage, DependencyProvider, DescribedPackage};
 
 /// The current version for the package meta file
 static CUR_VERSION: u32 = 1;
@@ -26,6 +26,8 @@ pub struct PackageMeta {
     pub arch: String,
     pub description: String,
 
+    pub build_id: String,
+
     pub dependencies: HashMap<String, PackageMetaDependency>,
 }
 
@@ -43,7 +45,7 @@ impl PackageMetaFile {
     /// * `in_package` - The package to generate this file from
     pub fn from_package<T>(in_package: &T) -> Self
     where
-        T: CorePackage + DescribedPackage + DependencyProvider,
+        T: CorePackage + DescribedPackage + BuildIDProvider + DependencyProvider,
     {
         // Take all dependencies and make their versions the required and the linked ones
         let mut dependencies = HashMap::new();
@@ -65,6 +67,7 @@ impl PackageMetaFile {
             version: in_package.get_version().to_owned(),
             arch: in_package.get_arch().to_owned(),
             description: in_package.get_description().to_string(),
+            build_id: in_package.get_build_id().to_string(),
             dependencies,
         };
 

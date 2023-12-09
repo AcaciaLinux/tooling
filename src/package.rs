@@ -91,6 +91,12 @@ pub trait PathPackage {
     fn get_real_path(&self) -> PathBuf;
 }
 
+/// Something that can provide a build id
+pub trait BuildIDProvider {
+    /// Returns the build id for this object
+    fn get_build_id(&self) -> &str;
+}
+
 /// Something that can provide a list of dependencies
 pub trait DependencyProvider {
     /// Returns all the needed dependencies

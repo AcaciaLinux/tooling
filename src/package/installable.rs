@@ -11,8 +11,8 @@ use crate::{
 };
 
 use super::{
-    BuiltPackage, CorePackage, DependencyProvider, DescribedPackage, IndexedPackage, PackageInfo,
-    PathPackage,
+    BuildIDProvider, BuiltPackage, CorePackage, DependencyProvider, DescribedPackage,
+    IndexedPackage, PackageInfo, PathPackage,
 };
 
 /// A package that is ready to be installed and deployed
@@ -28,6 +28,7 @@ pub struct InstallablePackage {
     pub path: PathBuf,
 
     pub index: Directory,
+    build_id: String,
 }
 
 impl InstallablePackage {
@@ -91,6 +92,7 @@ impl InstallablePackage {
             dependencies: built_package.dependencies,
             path: built_package.path,
             index: built_package.index,
+            build_id: built_package.build_id,
         })
     }
 }
@@ -124,6 +126,12 @@ impl DescribedPackage for InstallablePackage {
 impl PathPackage for InstallablePackage {
     fn get_real_path(&self) -> PathBuf {
         self.path.clone()
+    }
+}
+
+impl BuildIDProvider for InstallablePackage {
+    fn get_build_id(&self) -> &str {
+        &self.build_id
     }
 }
 

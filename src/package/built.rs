@@ -10,7 +10,8 @@ use crate::{
 };
 
 use super::{
-    CorePackage, DependencyProvider, DescribedPackage, IndexedPackage, PackageInfo, PathPackage,
+    BuildIDProvider, CorePackage, DependencyProvider, DescribedPackage, IndexedPackage,
+    PackageInfo, PathPackage,
 };
 
 /// A package that has been built by the builder and is now ready to be validated
@@ -28,6 +29,7 @@ pub struct BuiltPackage {
     pub path: PathBuf,
 
     pub index: Directory,
+    pub build_id: String,
 }
 
 impl BuiltPackage {
@@ -48,6 +50,7 @@ impl BuiltPackage {
         arch: String,
         path: &Path,
         validation_input: &ValidationInput,
+        build_id: String,
     ) -> Result<(Self, Vec<FileValidationResult>), Error> {
         let index = Directory::index(&path.join("data"), true, false)?;
 
@@ -65,6 +68,7 @@ impl BuiltPackage {
             path: path.to_owned(),
 
             index,
+            build_id,
         };
 
         // Validate the package
@@ -109,6 +113,12 @@ impl DescribedPackage for BuiltPackage {
 impl PathPackage for BuiltPackage {
     fn get_real_path(&self) -> PathBuf {
         self.path.clone()
+    }
+}
+
+impl BuildIDProvider for BuiltPackage {
+    fn get_build_id(&self) -> &str {
+        &self.build_id
     }
 }
 

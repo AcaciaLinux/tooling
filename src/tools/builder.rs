@@ -74,6 +74,9 @@ pub struct Builder {
 
     /// The formula to build
     pub formula: FormulaFile,
+
+    /// The build-id for the current builder instance
+    build_id: String,
 }
 
 /// Creates an installed package index including only the requested packages
@@ -149,6 +152,7 @@ impl Builder {
             target_dependency_index,
             formula_path,
             formula,
+            build_id: uuid::Uuid::new_v4().to_string(),
         })
     }
 
@@ -180,9 +184,7 @@ impl Builder {
         let steps = match self.formula.package.get_buildsteps(
             Path::new("/formula"),
             &self.arch,
-            &PathBuf::from("/")
-                .join(self.formula.package.get_full_name(&self.arch))
-                .join("data"),
+            &PathBuf::from("/").join(&self.build_id).join("data"),
         ) {
             Some(steps) => steps,
             None => {
@@ -215,6 +217,7 @@ impl Builder {
             self.arch.clone(),
             &self.destdir_outer_path(),
             &validation_input,
+            self.build_id.clone(),
         )
     }
 
@@ -306,15 +309,12 @@ impl Builder {
 
     /// The package installation directory from outside the chroot
     fn destdir_outer_path(&self) -> PathBuf {
-        self.workdir
-            .join(self.formula.package.get_full_name(&self.arch))
+        self.workdir.join(&self.build_id)
     }
 
     /// The package installation directory from inside the chroot
     fn destdir_inner_path(&self) -> PathBuf {
-        self.get_overlay_dir()
-            .join("merged")
-            .join(self.formula.package.get_full_name(&self.arch))
+        self.get_overlay_dir().join("merged").join(&self.build_id)
     }
 }
 

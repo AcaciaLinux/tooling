@@ -34,6 +34,8 @@ pub struct FormulaPackage {
     pub build: Option<String>,
     pub check: Option<String>,
     pub package: Option<String>,
+
+    pub sources: Option<Vec<FormulaPackageSource>>,
 }
 
 /// The architecture parsing enum
@@ -44,8 +46,23 @@ pub enum FormulaPackageArch {
     Specific(Vec<String>),
 }
 
-/// Provides the default value for the `stip` field: `true`
+/// A source for a package
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FormulaPackageSource {
+    pub url: String,
+    pub dest: Option<String>,
+
+    #[serde(default = "default_formula_package_source_extract")]
+    pub extract: bool,
+}
+
+/// Provides the default value for the `strip` field: `true`
 fn default_formula_package_strip() -> bool {
+    true
+}
+
+/// Provides the default value for the `extract` field: `false`
+fn default_formula_package_source_extract() -> bool {
     true
 }
 

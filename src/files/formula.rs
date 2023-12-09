@@ -3,7 +3,11 @@ use std::{collections::HashMap, path::Path};
 
 use serde::{Deserialize, Serialize};
 
-use crate::env::EnvironmentExecutable;
+use crate::{
+    env::EnvironmentExecutable,
+    package::{CorePackage, NameVersionPackage, NamedPackage, VersionedPackage},
+    util::string::replace_package_variables,
+};
 
 /// The contents of a formula file
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -160,6 +164,46 @@ impl FormulaPackage {
         }
 
         Some(res)
+    }
+}
+
+impl NamedPackage for FormulaPackage {
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+}
+
+impl VersionedPackage for FormulaPackage {
+    fn get_version(&self) -> &str {
+        &self.version
+    }
+}
+
+impl NameVersionPackage for FormulaPackage {}
+
+impl FormulaPackageSource {
+    /// Returns the URL of the source with the variables replaced using [crate::util::string::replace_package_variables()]
+    /// # Arguments
+    /// * `package` - The package to pull the variables from
+    pub fn get_url(&self, package: &dyn CorePackage) -> String {
+        replace_package_variables(&self.url, package)
+    }
+
+    /// Returns the URL of the source with the variables replaced using [crate::util::string::replace_package_variables()]
+    /// # Arguments
+    /// * `package` - The package to pull the variables from
+    pub fn get_dest(&self, package: &dyn CorePackage) -> String {
+        let dest = match &self.dest {
+            Some(d) => d.to_owned(),
+            None => self
+                .get_url(package)
+                .split('/')
+                .last()
+                .unwrap_or("download")
+                .to_owned(),
+        };
+
+        replace_package_variables(&dest, package)
     }
 }
 

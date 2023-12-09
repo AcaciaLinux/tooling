@@ -12,8 +12,11 @@ use crate::{
     files::formula::FormulaFile,
     package::{
         BuiltPackage, CorePackage, InstalledPackage, InstalledPackageIndex, PackageIndexProvider,
+        PackageInfo,
     },
     util::{
+        archive,
+        download::download_to_file,
         mount::{BindMount, OverlayMount},
         parse::parse_toml,
         signal::SignalDispatcher,
@@ -173,13 +176,51 @@ impl Builder {
                 self.formula.package.get_full_name(&self.arch)
             )
         };
+        let package_info = PackageInfo {
+            name: self.formula.package.name.clone(),
+            version: self.formula.package.version.clone(),
+            arch: self.arch.clone(),
+        };
         info!(
             "Building package {} (build-id: {})",
-            self.formula.package.get_full_name(&self.arch),
+            package_info.get_full_name(),
             self.build_id
         );
 
         let env = self.create_env().e_context(context)?;
+
+        // Download the sources and extract them if so desired
+        if let Some(sources) = &self.formula.package.sources {
+            for source in sources {
+                let url = source.get_url(&package_info);
+                let dest = source.get_dest(&package_info);
+
+                let formula_dir = &self.get_overlay_dir().join("merged").join("formula");
+                let dest_path = formula_dir.join(&dest);
+
+                download_to_file(
+                    &url,
+                    &dest_path,
+                    &format!("Downloading source '{}' to '{}'", url, dest),
+                    true,
+                )?;
+
+                if source.extract {
+                    info!(
+                        "Extracting {} to {}",
+                        dest_path.to_string_lossy(),
+                        formula_dir.to_string_lossy()
+                    );
+
+                    archive::extract_infer(&dest_path, formula_dir).e_context(context)?;
+                }
+            }
+        }
+
+        info!(
+            "Starting to build '{}'",
+            self.formula.package.get_full_name(&self.arch)
+        );
 
         // Try to retrieve the build steps from the formula
         let steps = match self.formula.package.get_buildsteps(

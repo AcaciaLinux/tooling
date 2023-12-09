@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use clap::Parser;
 
 const DEFAULT_WORKDIR: &str = "./work";
-const DEFAULT_ACACIA_DIR: &str = "/acacia";
+const DEFAULT_DIST_DIR: &str = "/acacia";
 const DEFAULT_PACKAGE_INDEX: &str = "/acacia/packages.toml";
 
 /// Build AcaciaLinux packages
@@ -23,8 +23,8 @@ pub struct BuilderConfig {
     pub workdir: PathBuf,
 
     /// The directory to search for package dependencies
-    #[arg(long, default_value = DEFAULT_ACACIA_DIR)]
-    pub acacia_dir: PathBuf,
+    #[arg(long, default_value = DEFAULT_DIST_DIR)]
+    pub dist_dir: PathBuf,
 
     /// Additional directories to overlay on top of the toolchain and the packages
     #[arg(long)]

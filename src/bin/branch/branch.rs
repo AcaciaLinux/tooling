@@ -25,7 +25,7 @@ fn run(signal_dispatcher: &SignalDispatcher, cli: BuilderConfig) -> Result<(), E
     let builder_template = BuilderTemplate {
         toolchain: cli.toolchain,
         workdir: cli.workdir,
-        dist_dir: cli.acacia_dir,
+        dist_dir: cli.dist_dir,
         overlay_dirs: cli.overlay_dirs,
         arch,
         formula_path: cli.formula,

@@ -174,8 +174,9 @@ impl Builder {
             )
         };
         info!(
-            "Building package {}",
-            self.formula.package.get_full_name(&self.arch)
+            "Building package {} (build-id: {})",
+            self.formula.package.get_full_name(&self.arch),
+            self.build_id
         );
 
         let env = self.create_env().e_context(context)?;

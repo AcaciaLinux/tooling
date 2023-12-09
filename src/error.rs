@@ -4,13 +4,16 @@ use std::collections::LinkedList;
 
 use crate::{tools::builder::BuilderError, validators::ValidationError};
 
-use self::support::TOMLError;
+use self::{assert::AssertionError, support::TOMLError};
 
 mod support;
+
+pub mod assert;
 
 /// The type of error at hand
 #[derive(Debug)]
 pub enum ErrorType {
+    Assert(AssertionError),
     IO(std::io::Error),
     ELFParse(elf::ParseError),
     TOML(TOMLError),
@@ -76,6 +79,7 @@ impl Error {
 impl std::fmt::Display for ErrorType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Assert(e) => e.fmt(f),
             Self::IO(e) => e.fmt(f),
             Self::ELFParse(e) => e.fmt(f),
             Self::TOML(e) => e.fmt(f),

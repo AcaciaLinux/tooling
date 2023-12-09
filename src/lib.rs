@@ -3,6 +3,7 @@
 /// The commit hash of the commit this binary was built from
 const GIT_COMMIT_HASH: &str = env!("GIT_COMMIT_HASH");
 
+pub mod assert;
 pub mod env;
 pub mod error;
 pub mod files;

@@ -1,4 +1,19 @@
-use super::{Error, ErrorExt, ErrorType, Throwable};
+use super::{AssertionError, Error, ErrorExt, ErrorType, Throwable};
+
+impl<T> ErrorExt<T> for Result<T, AssertionError> {
+    fn e_context<F: Fn() -> String>(self, context: F) -> Result<T, Error> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => Err(Error::new_context(ErrorType::Assert(e), context())),
+        }
+    }
+}
+
+impl Throwable for AssertionError {
+    fn throw(self, context: String) -> Error {
+        Error::new_context(ErrorType::Assert(self), context)
+    }
+}
 
 impl<T> ErrorExt<T> for Result<T, std::io::Error> {
     fn e_context<F: Fn() -> String>(self, context: F) -> Result<T, Error> {

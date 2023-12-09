@@ -40,3 +40,7 @@ The most common usage for `branch` is to pipe its `stdout` output to a file or a
 - `sed`: The stream editor is used to execute regexes on regular files
 
 The program assumes that these dependencies exist, but does not require them to be available to it. It generates an output regardless of the availability of these binaries. The user can then whether to apply the actions or to modify them according to its needs.
+
+# Build pipeline
+
+`branch` follows a strict pipeline of actions to build a package. It is described [here](pipeline.md).

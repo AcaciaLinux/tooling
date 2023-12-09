@@ -9,7 +9,9 @@ use crate::{
     },
 };
 
-use super::{CorePackage, DependencyProvider, IndexedPackage, PackageInfo, PathPackage};
+use super::{
+    CorePackage, DependencyProvider, DescribedPackage, IndexedPackage, PackageInfo, PathPackage,
+};
 
 /// A package that has been built by the builder and is now ready to be validated
 #[derive(Clone, Debug)]
@@ -95,6 +97,12 @@ impl CorePackage for BuiltPackage {
 impl IndexedPackage for BuiltPackage {
     fn get_index(&self) -> &Directory {
         &self.index
+    }
+}
+
+impl DescribedPackage for BuiltPackage {
+    fn get_description(&self) -> &str {
+        &self.description
     }
 }
 

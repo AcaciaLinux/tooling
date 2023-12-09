@@ -76,6 +76,12 @@ pub trait CorePackage {
     }
 }
 
+/// A package that has a description
+pub trait DescribedPackage {
+    /// Get the description for the package
+    fn get_description(&self) -> &str;
+}
+
 /// A package that has a path to where it lives
 pub trait PathPackage {
     /// Returns the **real** path to the package without constructing it from a DIST directory

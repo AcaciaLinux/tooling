@@ -15,7 +15,7 @@ pub struct ScriptFile {
     pub name: OsString,
 
     /// The interpreter for the file
-    /// (<path to the interpreter>, <array of arguments>)
+    /// (`<path to the interpreter>`, `<array of arguments>`)
     pub interpreter: Option<(PathBuf, Vec<OsString>)>,
 }
 

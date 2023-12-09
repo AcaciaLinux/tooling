@@ -1,11 +1,13 @@
 use std::{collections::HashMap, sync::Arc};
 
 use clap::Parser;
-use log::info;
+use log::warn;
 use tooling::{
+    abs_dist_dir, dist_dir,
     env::CustomExecutable,
     error::{Error, ErrorExt},
     files::package_index::PackageIndexFile,
+    package::{BuildIDProvider, CorePackage, InstallablePackage, PathPackage},
     tools::builder::{Builder, BuilderTemplate},
     util::{parse::parse_toml, signal::SignalDispatcher},
 };
@@ -41,7 +43,28 @@ fn run(signal_dispatcher: &SignalDispatcher, cli: BuilderConfig) -> Result<(), E
             .run_custom(&env, &executable, signal_dispatcher)
             .e_context(context)?;
     } else {
-        builder.build(signal_dispatcher).e_context(context)?;
+        let pkg = builder.build(signal_dispatcher).e_context(context)?;
+
+        for file in pkg.1 {
+            for error in file.errors {
+                warn!(
+                    "VALIDATION for '{}' failed: {error}",
+                    file.path.to_string_lossy()
+                )
+            }
+            for action in file.actions {
+                let cmd = action.to_command(&file.path, &pkg.0, &abs_dist_dir())?;
+                println!("{}", cmd);
+            }
+        }
+
+        let installable = InstallablePackage::from_built(pkg.0, &dist_dir())?;
+        eprintln!(
+            "Built package '{}' [{}] available at {}",
+            installable.get_full_name(),
+            installable.get_build_id(),
+            installable.get_real_path().to_string_lossy()
+        );
     }
 
     Ok(())
@@ -66,6 +89,6 @@ fn main() {
 
     match run(&dispatcher, cli) {
         Ok(()) => {}
-        Err(e) => println!("Failed to run builder: {e}"),
+        Err(e) => eprintln!("Failed to run builder: {e}"),
     };
 }

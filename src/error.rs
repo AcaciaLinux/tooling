@@ -4,9 +4,12 @@ use std::collections::LinkedList;
 
 use crate::{tools::builder::BuilderError, validators::ValidationError};
 
-use self::{assert::AssertionError, support::TOMLError};
+use self::{
+    assert::AssertionError,
+    support::{CURLError, TOMLError},
+};
 
-mod support;
+pub mod support;
 
 pub mod assert;
 
@@ -19,6 +22,7 @@ pub enum ErrorType {
     TOML(TOMLError),
     Builder(BuilderError),
     Validation(ValidationError),
+    CURL(CURLError),
 }
 
 /// The error struct, containing the error and a context
@@ -85,6 +89,7 @@ impl std::fmt::Display for ErrorType {
             Self::TOML(e) => e.fmt(f),
             Self::Builder(e) => e.fmt(f),
             Self::Validation(e) => e.fmt(f),
+            Self::CURL(e) => e.fmt(f),
         }
     }
 }

@@ -21,3 +21,11 @@ sys-mount = { version = "2.1.0", default-features = false }
 toml = { version = "0.8.8", features = ["display"] }
 uname = "0.1.1"
 uuid = { version = "1.6.1", features = ["v4"] }
+
+curl = { version = "0.4.44", default-features = false, features = [
+    "static-ssl",
+    "static-curl",
+    "protocol-ftp",
+    "ssl",
+] }
+http = "1.0.0"

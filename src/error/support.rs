@@ -1,3 +1,6 @@
+//! Support code to wrap other errors in `tooling::Error` structs
+use http::StatusCode;
+
 use super::{AssertionError, Error, ErrorExt, ErrorType, Throwable};
 
 impl<T> ErrorExt<T> for Result<T, AssertionError> {
@@ -96,5 +99,44 @@ impl<T> ErrorExt<T> for Result<T, toml::ser::Error> {
 impl Throwable for toml::ser::Error {
     fn throw(self, context: String) -> Error {
         Error::new_context(ErrorType::TOML(TOMLError::Serialize(self)), context)
+    }
+}
+
+/// A CURL error
+#[derive(Debug)]
+pub enum CURLError {
+    /// An error happened in the CURL library
+    CURL(curl::Error),
+    /// An unknown status code has been responded
+    InvalidStatus(u32),
+    /// Failed request
+    ErrorStatus(StatusCode),
+}
+
+impl std::fmt::Display for CURLError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::CURL(e) => e.fmt(f),
+            Self::InvalidStatus(status) => write!(f, "Unknown HTTP response status '{}'", status),
+            Self::ErrorStatus(code) => write!(f, "Request failed: {}", code),
+        }
+    }
+}
+
+impl<T> ErrorExt<T> for Result<T, curl::Error> {
+    fn e_context<F: Fn() -> String>(self, context: F) -> Result<T, Error> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => Err(Error::new_context(
+                ErrorType::CURL(CURLError::CURL(e)),
+                context(),
+            )),
+        }
+    }
+}
+
+impl Throwable for curl::Error {
+    fn throw(self, context: String) -> Error {
+        Error::new_context(ErrorType::CURL(CURLError::CURL(self)), context)
     }
 }

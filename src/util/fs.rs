@@ -11,7 +11,7 @@ pub use fsentry::*;
 
 use crate::error::{Error, ErrorExt};
 use log::trace;
-use std::path::Path;
+use std::{fs::File, path::Path};
 
 /// Creates a directory
 ///
@@ -47,4 +47,18 @@ pub fn create_symlink(path: &Path, destination: &Path) -> Result<(), Error> {
             destination.to_string_lossy()
         )
     })
+}
+
+/// Opens a file using the [std::fs::File::open()] function
+/// # Arguments
+/// * `path` - The path to the file to open
+pub fn file_open(path: &Path) -> Result<File, Error> {
+    File::open(path).e_context(|| format!("Opening file {}", path.to_string_lossy()))
+}
+
+/// Creates a file using the [std::fs::File::create()] function
+/// # Arguments
+/// * `path` - The path to the file to create
+pub fn file_create(path: &Path) -> Result<File, Error> {
+    File::create(path).e_context(|| format!("Creating file {}", path.to_string_lossy()))
 }

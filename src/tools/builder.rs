@@ -336,7 +336,7 @@ impl Builder {
 
     /// The directory to house all overlay directories
     fn get_overlay_dir(&self) -> PathBuf {
-        self.workdir.join("overlay")
+        self.workdir.join("overlay").join(&self.build_id)
     }
 
     /// The directory to house the overlay directories of the root mount

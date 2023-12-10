@@ -9,7 +9,7 @@ use log::{debug, info};
 use crate::{
     env::{BuildEnvironment, Environment, EnvironmentExecutable},
     error::{Error, ErrorExt, ErrorType, Throwable},
-    files::formula::FormulaFile,
+    files::formula::{FormulaFile, FormulaPackageArch},
     package::{
         BuiltPackage, CorePackage, InstalledPackage, InstalledPackageIndex, PackageIndexProvider,
         PackageInfo,
@@ -130,6 +130,13 @@ impl Builder {
                 &template.formula_path.to_string_lossy()
             )
         })?;
+
+        // If the architecture of the formula is 'Any', use it instead of the target architecture
+        let arch = match formula.package.arch.clone() {
+            FormulaPackageArch::Any(s) => s,
+            FormulaPackageArch::Specific(_) => template.arch,
+        };
+
         let formula_path = template.formula_path;
 
         let dependencies: Vec<String> =
@@ -151,7 +158,7 @@ impl Builder {
             workdir: template.workdir,
             dist_dir: template.dist_dir,
             overlay_dirs: template.overlay_dirs,
-            arch: template.arch,
+            arch,
             target_dependency_index,
             formula_path,
             formula,

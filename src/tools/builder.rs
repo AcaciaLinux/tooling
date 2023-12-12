@@ -310,7 +310,10 @@ impl Builder {
 
     /// The directory to house all overlay directories
     fn get_overlay_dir(&self) -> PathBuf {
-        self.workdir.join("overlay").join(&self.build_id)
+        self.workdir
+            .join("builds")
+            .join(&self.build_id)
+            .join("overlay")
     }
 
     /// The directory to house the overlay directories of the root mount
@@ -325,7 +328,10 @@ impl Builder {
 
     /// The package installation directory from outside the chroot
     fn destdir_outer_path(&self) -> PathBuf {
-        self.workdir.join(&self.build_id)
+        self.workdir
+            .join("builds")
+            .join(&self.build_id)
+            .join("package-archive")
     }
 
     /// The package installation directory from inside the chroot

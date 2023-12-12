@@ -20,6 +20,7 @@ pub struct PackageIndexFile {
 pub struct IndexPackage {
     pub name: String,
     pub version: String,
+    pub pkgver: u32,
     pub arch: String,
 }
 
@@ -32,6 +33,9 @@ impl NamedPackage for IndexPackage {
 impl VersionedPackage for IndexPackage {
     fn get_version(&self) -> &str {
         &self.version
+    }
+    fn get_pkgver(&self) -> u32 {
+        self.pkgver
     }
 }
 
@@ -69,6 +73,7 @@ where
     #[derive(Deserialize)]
     struct IndexPackageRaw {
         pub version: String,
+        pub pkgver: u32,
         pub arch: String,
     }
 
@@ -80,6 +85,7 @@ where
         .map(|m| IndexPackage {
             name: m.0.to_owned(),
             version: m.1.version,
+            pkgver: m.1.pkgver,
             arch: m.1.arch,
         })
         .collect();

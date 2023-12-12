@@ -21,6 +21,7 @@ use super::{
 pub struct InstallablePackage {
     pub name: String,
     pub version: String,
+    pub pkgver: u32,
     pub arch: String,
     pub description: String,
 
@@ -75,11 +76,7 @@ impl InstallablePackage {
 
         // Populate the `link/` directory
         for dep in &built_package.dependencies {
-            let dest = Path::new("/")
-                .join(dist_dir)
-                .join(&dep.arch)
-                .join(&dep.name)
-                .join(&dep.version);
+            let dest = dep.get_path(&Path::new("/").join(dist_dir));
 
             create_symlink(&package_path.join("link").join(&dep.name), &dest).e_context(context)?;
         }
@@ -88,6 +85,7 @@ impl InstallablePackage {
         Ok(Self {
             name: built_package.name,
             version: built_package.version,
+            pkgver: built_package.pkgver,
             arch: built_package.arch,
             description: built_package.description,
             dependencies: built_package.dependencies,
@@ -107,6 +105,9 @@ impl NamedPackage for InstallablePackage {
 impl VersionedPackage for InstallablePackage {
     fn get_version(&self) -> &str {
         &self.version
+    }
+    fn get_pkgver(&self) -> u32 {
+        self.pkgver
     }
 }
 

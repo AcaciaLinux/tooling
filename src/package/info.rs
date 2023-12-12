@@ -7,6 +7,8 @@ pub struct PackageInfo {
     pub name: String,
     /// The version
     pub version: String,
+    /// The package version
+    pub pkgver: u32,
     /// The architecture it is built for
     pub arch: String,
 }
@@ -20,6 +22,9 @@ impl NamedPackage for PackageInfo {
 impl VersionedPackage for PackageInfo {
     fn get_version(&self) -> &str {
         &self.version
+    }
+    fn get_pkgver(&self) -> u32 {
+        self.pkgver
     }
 }
 

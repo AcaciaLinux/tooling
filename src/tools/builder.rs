@@ -187,6 +187,7 @@ impl Builder {
         let package_info = PackageInfo {
             name: self.formula.package.name.clone(),
             version: self.formula.package.version.clone(),
+            pkgver: self.formula.package.pkgver,
             arch: self.arch.clone(),
         };
         info!(
@@ -274,6 +275,7 @@ impl Builder {
         let package_info = PackageInfo {
             name: self.formula.package.name.clone(),
             version: self.formula.package.version.clone(),
+            pkgver: self.formula.package.pkgver,
             arch: self.arch.clone(),
         };
 

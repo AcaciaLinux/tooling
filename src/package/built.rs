@@ -19,6 +19,7 @@ use super::{
 pub struct BuiltPackage {
     pub name: String,
     pub version: String,
+    pub pkgver: u32,
     pub arch: String,
     pub description: String,
 
@@ -58,6 +59,7 @@ impl BuiltPackage {
         let mut self_ = Self {
             name: src.package.name.clone(),
             version: src.package.version.clone(),
+            pkgver: src.package.pkgver,
             arch,
             description: src.package.description.clone(),
 
@@ -93,6 +95,9 @@ impl NamedPackage for BuiltPackage {
 impl VersionedPackage for BuiltPackage {
     fn get_version(&self) -> &str {
         &self.version
+    }
+    fn get_pkgver(&self) -> u32 {
+        self.pkgver
     }
 }
 

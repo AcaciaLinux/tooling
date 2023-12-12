@@ -23,6 +23,7 @@ pub struct PackageMetaFile {
 pub struct PackageMeta {
     pub name: String,
     pub version: String,
+    pub pkgver: u32,
     pub arch: String,
     pub description: String,
 
@@ -55,8 +56,8 @@ impl PackageMetaFile {
                 dep.name,
                 PackageMetaDependency {
                     arch: dep.arch,
-                    req_version: dep.version.clone(),
-                    lnk_version: Some(dep.version),
+                    req_version: format!("{}/{}", dep.version, dep.pkgver),
+                    lnk_version: Some(format!("{}/{}", dep.version, dep.pkgver)),
                 },
             );
         }
@@ -65,6 +66,7 @@ impl PackageMetaFile {
         let package = PackageMeta {
             name: in_package.get_name().to_owned(),
             version: in_package.get_version().to_owned(),
+            pkgver: in_package.get_pkgver(),
             arch: in_package.get_arch().to_owned(),
             description: in_package.get_description().to_string(),
             build_id: in_package.get_build_id().to_string(),

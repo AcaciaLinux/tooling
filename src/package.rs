@@ -52,6 +52,8 @@ pub trait NamedPackage {
 pub trait VersionedPackage {
     /// Returns the `version` of the package
     fn get_version(&self) -> &str;
+    /// Returns the `pkgver` of the package
+    fn get_pkgver(&self) -> u32;
 }
 
 /// A package that has an architecture
@@ -62,9 +64,14 @@ pub trait ArchitecturePackage {
 
 /// A package that provides only a name and a version
 pub trait NameVersionPackage: NamedPackage + VersionedPackage {
-    /// Returns the name and version for this package: `<name>-<version>`
+    /// Returns the name and version for this package: `<name>-<version>-<pgkver>`
     fn get_name_version(&self) -> String {
-        format!("{}-{}", self.get_name(), self.get_version())
+        format!(
+            "{}-{}-{}",
+            self.get_name(),
+            self.get_version(),
+            self.get_pkgver()
+        )
     }
 }
 
@@ -72,15 +79,16 @@ pub trait NameVersionPackage: NamedPackage + VersionedPackage {
 pub trait CorePackage:
     NamedPackage + VersionedPackage + ArchitecturePackage + NameVersionPackage
 {
-    /// Returns the path to the package when it is installed: `<DIST_DIR>/<arch>/<name>/<version>`
+    /// Returns the path to the package when it is installed: `<DIST_DIR>/<arch>/<name>/<version>/<pkgver>`
     fn get_path(&self, dist_dir: &Path) -> PathBuf {
         dist_dir
             .join(self.get_arch())
             .join(self.get_name())
             .join(self.get_version())
+            .join(self.get_pkgver().to_string())
     }
 
-    /// Returns the full name for this package: `<arch>-<name>-<version>`
+    /// Returns the full name for this package: `<arch>-<name>-<version>-<pkgver>`
     fn get_full_name(&self) -> String {
         format!("{}-{}", self.get_arch(), self.get_name_version())
     }
@@ -90,6 +98,7 @@ pub trait CorePackage:
         PackageInfo {
             name: self.get_name().to_owned(),
             version: self.get_version().to_string(),
+            pkgver: self.get_pkgver(),
             arch: self.get_arch().to_string(),
         }
     }

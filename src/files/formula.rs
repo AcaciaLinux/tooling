@@ -7,7 +7,7 @@ use crate::{
     env::EnvironmentExecutable,
     package::{CorePackage, NameVersionPackage, NamedPackage, VersionedPackage},
     util::string::replace_package_variables,
-    ANY_ARCH,
+    ANY_ARCH, DIST_DIR,
 };
 
 /// The contents of a formula file
@@ -24,6 +24,7 @@ pub struct FormulaFile {
 pub struct FormulaPackage {
     pub name: String,
     pub version: String,
+    pub pkgver: u32,
     pub description: String,
 
     pub host_dependencies: Option<Vec<String>>,
@@ -105,7 +106,10 @@ impl FormulaPackage {
             env_pkg_version: self.version.clone(),
             env_pkg_arch: architecture.to_owned(),
             env_pkg_install_dir: install_dir.to_string_lossy().to_string(),
-            env_pkg_root: format!("/acacia/{architecture}/{}/{}/root", self.name, self.version),
+            env_pkg_root: format!(
+                "/{DIST_DIR}/{architecture}/{}/{}/{}/root",
+                self.name, self.version, self.pkgver
+            ),
         };
 
         // The 'prepare' build step for the formula
@@ -169,6 +173,9 @@ impl NamedPackage for FormulaPackage {
 impl VersionedPackage for FormulaPackage {
     fn get_version(&self) -> &str {
         &self.version
+    }
+    fn get_pkgver(&self) -> u32 {
+        self.pkgver
     }
 }
 

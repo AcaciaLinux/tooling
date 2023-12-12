@@ -17,6 +17,8 @@ pub struct InstalledPackage {
     pub name: String,
     /// The version
     pub version: String,
+    /// The pkgver
+    pub pkgver: u32,
     /// The architecture
     pub arch: String,
     /// The description for the package
@@ -56,6 +58,7 @@ impl InstalledPackage {
         Ok(Self {
             name: pkg_meta.package.name,
             version: pkg_meta.package.version,
+            pkgver: pkg_meta.package.pkgver,
             arch: pkg_meta.package.arch,
             description: pkg_meta.package.description,
             path: pkg_path,
@@ -73,6 +76,9 @@ impl NamedPackage for InstalledPackage {
 impl VersionedPackage for InstalledPackage {
     fn get_version(&self) -> &str {
         &self.version
+    }
+    fn get_pkgver(&self) -> u32 {
+        self.pkgver
     }
 }
 
@@ -109,6 +115,7 @@ impl From<BuiltPackage> for InstalledPackage {
         Self {
             name: value.name,
             version: value.version,
+            pkgver: value.pkgver,
             arch: value.arch,
             description: value.description,
             path: value.path,

@@ -4,21 +4,18 @@ use std::{
     process::ExitStatus,
 };
 
-use log::{debug, info};
+use log::info;
 
 use crate::{
     env::{BuildEnvironment, Environment, EnvironmentExecutable},
     error::{Error, ErrorExt, ErrorType, Throwable},
     files::formula::FormulaFile,
-    package::{
-        BuiltPackage, CorePackage, InstalledPackage, InstalledPackageIndex, PackageIndexProvider,
-        PackageInfo,
-    },
+    package::{BuiltPackage, CorePackage, InstalledPackageIndex, PackageInfo},
     util::{
         archive,
         download::download_to_file,
         mount::{BindMount, OverlayMount},
-        parse::parse_toml,
+        parse::{parse_toml, versionstring::VersionString},
         signal::SignalDispatcher,
     },
     validators::{indexed_package::FileValidationResult, ValidationInput},
@@ -26,7 +23,7 @@ use crate::{
 };
 
 /// A template struct that can be used to instantiate `Builder`s
-pub struct BuilderTemplate<'a> {
+pub struct BuilderTemplate {
     /// The directory to expect the toolchain binaries at (gets appended with `/bin` for the PATH variable)
     pub toolchain: PathBuf,
 
@@ -45,8 +42,6 @@ pub struct BuilderTemplate<'a> {
 
     /// The path to the formula to be built
     pub formula_path: PathBuf,
-
-    pub package_index_provider: &'a dyn PackageIndexProvider,
 }
 
 /// The `Builder` tool - the configuration struct
@@ -64,9 +59,6 @@ pub struct Builder {
     /// Additional directories to overlay on top of the toolchain and the packages
     pub overlay_dirs: Vec<PathBuf>,
 
-    /// Construct the build root, chroot into it and execute this command instead of the build steps
-    //pub exec: Option<String>,
-
     /// The architecture to build for
     pub arch: String,
 
@@ -81,42 +73,6 @@ pub struct Builder {
 
     /// The build-id for the current builder instance
     build_id: String,
-}
-
-/// Creates an installed package index including only the requested packages
-/// # Arguments
-/// * `packages` - The packages to search for
-/// * `provider` - A provider for the searched packages
-/// * `dist_dir` - The directory to search for packages
-fn find_packages(
-    packages: &[String],
-    provider: &dyn PackageIndexProvider,
-    dist_dir: &Path,
-) -> Result<InstalledPackageIndex, Error> {
-    let mut res = InstalledPackageIndex::default();
-
-    for package in packages {
-        if let Some(package) = provider.find_package(package) {
-            let path = package.get_path(dist_dir);
-
-            let package = InstalledPackage::parse_from_index(package, dist_dir)?;
-
-            debug!(
-                "Found package {} at {}",
-                package.get_full_name(),
-                path.to_string_lossy()
-            );
-
-            res.push(package);
-        } else {
-            return Err(BuilderError::DependencyNotFound {
-                name: package.clone(),
-            }
-            .throw("Finding installed packages".to_owned()));
-        }
-    }
-
-    Ok(res)
 }
 
 impl Builder {
@@ -140,7 +96,7 @@ impl Builder {
 
         let formula_path = template.formula_path;
 
-        let dependencies: Vec<String> =
+        let dependencies: Vec<VersionString> =
             if let Some(dependencies) = &formula.package.target_dependencies {
                 dependencies.clone()
             } else {
@@ -148,9 +104,9 @@ impl Builder {
             };
 
         // Ensure the target dependencies
-        let target_dependency_index = find_packages(
+        let target_dependency_index = InstalledPackageIndex::from_package_list(
             &dependencies,
-            template.package_index_provider,
+            arch.clone(),
             &template.dist_dir,
         )?;
 

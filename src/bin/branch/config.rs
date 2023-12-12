@@ -4,7 +4,6 @@ use clap::Parser;
 
 const DEFAULT_WORKDIR: &str = "./work";
 const DEFAULT_DIST_DIR: &str = "/acacia";
-const DEFAULT_PACKAGE_INDEX: &str = "/acacia/packages.toml";
 
 /// Build AcaciaLinux packages
 #[derive(Parser)]
@@ -37,10 +36,6 @@ pub struct BuilderConfig {
     #[arg(long)]
     /// The architecture to build for
     pub arch: Option<String>,
-
-    /// The path to the package index for searching packages
-    #[arg(long, default_value = DEFAULT_PACKAGE_INDEX)]
-    pub package_index: PathBuf,
 
     /// The formula to build
     pub formula: PathBuf,

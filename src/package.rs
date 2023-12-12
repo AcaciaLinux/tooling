@@ -6,7 +6,6 @@ use std::{
 };
 
 use crate::{
-    files::package_index::IndexPackage,
     util::fs::{Directory, SearchType},
     validators::{
         indexed_package::{validate_indexed_package, FileValidationResult},
@@ -28,19 +27,6 @@ pub use installable::*;
 
 mod info;
 pub use info::*;
-
-/// A provider for `IndexPackage`s
-pub trait PackageIndexProvider {
-    /// Returns the array of `IndexPackage`s the struct provides
-    fn get_packages(&self) -> &[IndexPackage];
-
-    /// Tries to find a package by its name
-    /// # Arguments
-    /// * `name` - The name to search for
-    /// # Returns
-    /// `None` if the package has not been found
-    fn find_package(&self, name: &str) -> Option<&IndexPackage>;
-}
 
 /// A package that has a name
 pub trait NamedPackage {

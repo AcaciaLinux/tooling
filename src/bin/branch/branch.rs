@@ -6,10 +6,9 @@ use tooling::{
     abs_dist_dir, dist_dir,
     env::CustomExecutable,
     error::{Error, ErrorExt},
-    files::package_index::PackageIndexFile,
     package::{BuildIDProvider, CorePackage, InstallablePackage, PathPackage},
     tools::builder::{Builder, BuilderTemplate},
-    util::{parse::parse_toml, signal::SignalDispatcher},
+    util::signal::SignalDispatcher,
 };
 
 mod config;
@@ -19,7 +18,6 @@ fn run(signal_dispatcher: &SignalDispatcher, cli: BuilderConfig) -> Result<(), E
     let context = || "Running the builder".to_string();
 
     let arch = cli.get_arch().clone();
-    let package_index: PackageIndexFile = parse_toml(&cli.package_index)?;
 
     // Create a template for the builder
     let builder_template = BuilderTemplate {
@@ -29,7 +27,6 @@ fn run(signal_dispatcher: &SignalDispatcher, cli: BuilderConfig) -> Result<(), E
         overlay_dirs: cli.overlay_dirs,
         arch,
         formula_path: cli.formula,
-        package_index_provider: &package_index,
     };
 
     // Create the builder

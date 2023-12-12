@@ -6,12 +6,14 @@ use crate::{tools::builder::BuilderError, validators::ValidationError};
 
 use self::{
     assert::AssertionError,
+    dependency::DependencyError,
     support::{CURLError, TOMLError},
 };
 
 pub mod support;
 
 pub mod assert;
+pub mod dependency;
 
 /// The type of error at hand
 #[derive(Debug)]
@@ -23,6 +25,7 @@ pub enum ErrorType {
     Builder(BuilderError),
     Validation(ValidationError),
     CURL(CURLError),
+    Dependency(DependencyError),
 }
 
 /// The error struct, containing the error and a context
@@ -95,6 +98,7 @@ impl std::fmt::Display for ErrorType {
             Self::Builder(e) => e.fmt(f),
             Self::Validation(e) => e.fmt(f),
             Self::CURL(e) => e.fmt(f),
+            Self::Dependency(e) => e.fmt(f),
         }
     }
 }

@@ -1,7 +1,7 @@
 //! Support code to wrap other errors in `tooling::Error` structs
 use http::StatusCode;
 
-use super::{AssertionError, Error, ErrorExt, ErrorType, Throwable};
+use super::{dependency::DependencyError, AssertionError, Error, ErrorExt, ErrorType, Throwable};
 
 impl<T> ErrorExt<T> for Result<T, AssertionError> {
     fn e_context<F: Fn() -> String>(self, context: F) -> Result<T, Error> {
@@ -138,5 +138,20 @@ impl<T> ErrorExt<T> for Result<T, curl::Error> {
 impl Throwable for curl::Error {
     fn throw(self, context: String) -> Error {
         Error::new_context(ErrorType::CURL(CURLError::CURL(self)), context)
+    }
+}
+
+impl<T> ErrorExt<T> for Result<T, DependencyError> {
+    fn e_context<F: Fn() -> String>(self, context: F) -> Result<T, Error> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => Err(Error::new_context(ErrorType::Dependency(e), context())),
+        }
+    }
+}
+
+impl Throwable for DependencyError {
+    fn throw(self, context: String) -> Error {
+        Error::new_context(ErrorType::Dependency(self), context)
     }
 }

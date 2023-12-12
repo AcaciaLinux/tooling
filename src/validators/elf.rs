@@ -1,5 +1,8 @@
 //! Validators for `ELFFile` and general ELF-related stuff
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use crate::{
     assert_absolute,
@@ -98,13 +101,13 @@ impl ELFAction {
     /// * `target_package` - The package providing the `file`
     /// * `dist_dir` - The **ABSOLUTE** path to the `dist` directory
     /// # Returns
-    /// The command in string form or an error
+    /// The command or an error
     pub fn to_command<T>(
         &self,
         file: &Path,
         target_package: &T,
         dist_dir: &Path,
-    ) -> Result<String, Error>
+    ) -> Result<Command, Error>
     where
         T: CorePackage + PathPackage,
     {
@@ -121,11 +124,11 @@ impl ELFAction {
                     .join("link")
                     .join(package.get_name())
                     .join(interpreter);
-                format!(
-                    "patchelf --set-interpreter {} {}",
-                    dest.to_string_lossy(),
-                    target_package.get_real_path().join(file).to_string_lossy()
-                )
+                let mut command = Command::new("patchelf");
+                command.arg("--set-interpreter");
+                command.arg(dest);
+                command.arg(target_package.get_real_path().join(file));
+                command
             }
             Self::AddRunPath { runpath, package } => {
                 let dest = target_package
@@ -133,17 +136,16 @@ impl ELFAction {
                     .join("link")
                     .join(package.get_name())
                     .join(runpath);
-                format!(
-                    "patchelf --add-rpath {} {}",
-                    dest.to_string_lossy(),
-                    target_package.get_real_path().join(file).to_string_lossy()
-                )
+                let mut command = Command::new("patchelf");
+                command.arg("--add-rpath");
+                command.arg(dest);
+                command.arg(target_package.get_real_path().join(file));
+                command
             }
             Self::Strip => {
-                format!(
-                    "strip {}",
-                    target_package.get_real_path().join(file).to_string_lossy()
-                )
+                let mut command = Command::new("strip");
+                command.arg(target_package.get_real_path().join(file));
+                command
             }
         })
     }

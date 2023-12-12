@@ -1,5 +1,8 @@
 //! Validators for `Script`s
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use crate::{
     assert_absolute,
@@ -64,13 +67,13 @@ impl ScriptAction {
     /// * `target_package` - The package providing the `file`
     /// * `dist_dir` - The **ABSOLUTE** path to the `dist` directory
     /// # Returns
-    /// The command in string form or an error
+    /// The command or an error
     pub fn to_command<T>(
         &self,
         file: &Path,
         target_package: &T,
         dist_dir: &Path,
-    ) -> Result<String, Error>
+    ) -> Result<Command, Error>
     where
         T: CorePackage + PathPackage,
     {
@@ -88,12 +91,16 @@ impl ScriptAction {
                     .join(package.get_name())
                     .join(&interpreter.1);
 
-                format!(
-                    "sed -i'' '1s/{}/{}/' {}",
+                let mut command = Command::new("sed");
+                command.arg("-i");
+                command.arg("''");
+                command.arg(format!(
+                    "'1s/{}/{}/'",
                     interpreter.0.to_string_lossy().replace('/', "\\/"),
                     dest.to_string_lossy().replace('/', "\\/"),
-                    target_package.get_real_path().join(file).to_string_lossy()
-                )
+                ));
+                command.arg(target_package.get_real_path().join(file));
+                command
             }
         })
     }

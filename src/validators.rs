@@ -5,7 +5,7 @@ pub mod indexed_package;
 pub mod scripts;
 
 mod error;
-use std::{collections::HashMap, path::Path};
+use std::{collections::HashMap, path::Path, process::Command};
 
 pub use error::*;
 
@@ -48,13 +48,13 @@ impl ValidatorAction {
     /// * `target_package` - The package providing the `file`
     /// * `dist_dir` - The **ABSOLUTE** path to the `dist` directory
     /// # Returns
-    /// The command in string form or an error
+    /// The command or an error
     pub fn to_command<T>(
         &self,
         file: &Path,
         target_package: &T,
         dist_dir: &Path,
-    ) -> Result<String, Error>
+    ) -> Result<Command, Error>
     where
         T: CorePackage + PathPackage,
     {

@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     env::EnvironmentExecutable,
     package::{CorePackage, NameVersionPackage, NamedPackage, VersionedPackage},
-    util::string::replace_package_variables,
+    util::{parse::versionstring::VersionString, string::replace_package_variables},
     ANY_ARCH, DIST_DIR,
 };
 
@@ -27,9 +27,9 @@ pub struct FormulaPackage {
     pub pkgver: u32,
     pub description: String,
 
-    pub host_dependencies: Option<Vec<String>>,
-    pub target_dependencies: Option<Vec<String>>,
-    pub extra_dependencies: Option<Vec<String>>,
+    pub host_dependencies: Option<Vec<VersionString>>,
+    pub target_dependencies: Option<Vec<VersionString>>,
+    pub extra_dependencies: Option<Vec<VersionString>>,
 
     #[serde(default = "default_formula_package_strip")]
     pub strip: bool,

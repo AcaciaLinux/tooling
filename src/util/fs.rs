@@ -49,6 +49,32 @@ pub fn create_symlink(path: &Path, destination: &Path) -> Result<(), Error> {
     })
 }
 
+/// Copies `src` to `dest`
+///
+/// Uses the [std::fs::copy()] function
+pub fn copy(src: &Path, dest: &Path) -> Result<u64, Error> {
+    std::fs::copy(src, dest).e_context(|| {
+        format!(
+            "Copying '{}' to '{}'",
+            src.to_string_lossy(),
+            dest.to_string_lossy()
+        )
+    })
+}
+
+/// Renames `src` to `dest`
+///
+/// Uses the [std::fs::rename()] function
+pub fn rename(src: &Path, dest: &Path) -> Result<(), Error> {
+    std::fs::rename(src, dest).e_context(|| {
+        format!(
+            "Renaming '{}' to '{}'",
+            src.to_string_lossy(),
+            dest.to_string_lossy()
+        )
+    })
+}
+
 /// Opens a file using the [std::fs::File::open()] function
 /// # Arguments
 /// * `path` - The path to the file to open

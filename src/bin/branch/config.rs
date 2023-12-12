@@ -4,6 +4,7 @@ use clap::Parser;
 
 const DEFAULT_WORKDIR: &str = "./work";
 const DEFAULT_DIST_DIR: &str = "/acacia";
+const DEFAULT_OUTPUT_DIR: &str = "./";
 
 /// Build AcaciaLinux packages
 #[derive(Parser)]
@@ -36,6 +37,10 @@ pub struct BuilderConfig {
     #[arg(long)]
     /// The architecture to build for
     pub arch: Option<String>,
+
+    #[arg(long, default_value = DEFAULT_OUTPUT_DIR)]
+    /// The directory to put built packages into
+    pub output_dir: PathBuf,
 
     /// The formula to build
     pub formula: PathBuf,

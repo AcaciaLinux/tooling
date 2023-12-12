@@ -8,7 +8,7 @@ use tooling::{
     error::{Error, ErrorExt},
     package::{BuildIDProvider, CorePackage, InstallablePackage, PathPackage},
     tools::builder::{Builder, BuilderTemplate},
-    util::signal::SignalDispatcher,
+    util::{fs, signal::SignalDispatcher},
 };
 
 mod config;
@@ -56,7 +56,23 @@ fn run(signal_dispatcher: &SignalDispatcher, cli: BuilderConfig) -> Result<(), E
             }
         }
 
-        let installable = InstallablePackage::from_built(pkg.0, &dist_dir())?;
+        let mut installable = InstallablePackage::from_built(pkg.0, &dist_dir())?;
+        fs::create_dir_all(&cli.output_dir)?;
+        let new_path = cli.output_dir.join(installable.get_full_name());
+
+        if new_path.exists() {
+            warn!(
+                "Removing old build artifact at '{}'",
+                new_path.to_string_lossy()
+            );
+            fs::remove_dir_all(&new_path)
+                .e_context(|| "Removing old package archive".to_owned())?;
+        }
+
+        fs::rename(&installable.get_real_path(), &new_path)
+            .e_context(|| "Moving package archive".to_owned())?;
+        installable.path = new_path;
+
         eprintln!(
             "Built package '{}' [{}] available at {}",
             installable.get_full_name(),

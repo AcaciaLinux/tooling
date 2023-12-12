@@ -29,6 +29,10 @@ pub struct Config {
     pub pkg_version: Option<String>,
 
     #[arg(long)]
+    /// Preset the pkgver
+    pub pkg_pkgver: Option<String>,
+
+    #[arg(long)]
     /// Preset the description
     pub pkg_description: Option<String>,
 }

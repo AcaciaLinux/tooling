@@ -1,9 +1,9 @@
-use std::io::{self, stderr, Write};
+use std::io::{self, stderr, ErrorKind, Write};
 
 use clap::Parser;
 use config::Config;
 use tooling::{
-    error::{Error, ErrorExt},
+    error::{Error, ErrorExt, Throwable},
     files::formula::{FormulaFile, FormulaPackage, FormulaPackageSource},
     util::{fs::create_dir_all, parse::write_toml},
 };
@@ -27,6 +27,18 @@ fn run(cli: Config) -> Result<(), Error> {
         Some(preset) => preset.clone(),
         None => prompt_stdin("Package version >>").e_context(context)?,
     };
+    let pkgver = match &cli.pkg_pkgver {
+        Some(preset) => preset.clone(),
+        None => prompt_stdin("Package pkgver >>").e_context(context)?,
+    };
+    let pkgver: u32 = match pkgver.parse() {
+        Ok(v) => v,
+        Err(e) => {
+            return Err(
+                std::io::Error::new(ErrorKind::Unsupported, e).throw("Parsing pkgver".to_owned())
+            )
+        }
+    };
     let description = match &cli.pkg_version {
         Some(preset) => preset.clone(),
         None => prompt_stdin("Package description >>").e_context(context)?,
@@ -49,6 +61,7 @@ fn run(cli: Config) -> Result<(), Error> {
     let package = FormulaPackage {
         name: name.clone(),
         version: version.clone(),
+        pkgver,
         description: description.clone(),
         host_dependencies: None,
         target_dependencies: None,

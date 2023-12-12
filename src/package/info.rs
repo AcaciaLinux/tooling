@@ -1,3 +1,5 @@
+use crate::util::parse::versionstring::VersionString;
+
 use super::{ArchitecturePackage, CorePackage, NameVersionPackage, NamedPackage, VersionedPackage};
 
 /// Describes a package, just the neccessary stuff
@@ -11,6 +13,21 @@ pub struct PackageInfo {
     pub pkgver: u32,
     /// The architecture it is built for
     pub arch: String,
+}
+
+impl PackageInfo {
+    /// Creates a `PackageInfo` struct from a `VersionString`
+    /// # Arguments
+    /// * `version_string` - The source struct
+    /// * `arch` - The archtecture to use
+    pub fn from_version_string(version_string: VersionString, arch: String) -> Self {
+        Self {
+            name: version_string.name,
+            version: version_string.version,
+            pkgver: version_string.pkgver,
+            arch,
+        }
+    }
 }
 
 impl NamedPackage for PackageInfo {

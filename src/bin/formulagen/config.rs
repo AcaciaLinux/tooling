@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-const DEFAULT_PARENT_DIR: &str = "./work";
+const DEFAULT_PARENT_DIR: &str = "./";
 
 /// Generate formula files from a simple set of questions
 #[derive(Parser)]

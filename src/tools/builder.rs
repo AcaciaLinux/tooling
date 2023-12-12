@@ -9,7 +9,7 @@ use log::{debug, info};
 use crate::{
     env::{BuildEnvironment, Environment, EnvironmentExecutable},
     error::{Error, ErrorExt, ErrorType, Throwable},
-    files::formula::{FormulaFile, FormulaPackageArch},
+    files::formula::FormulaFile,
     package::{
         BuiltPackage, CorePackage, InstalledPackage, InstalledPackageIndex, PackageIndexProvider,
         PackageInfo,
@@ -22,6 +22,7 @@ use crate::{
         signal::SignalDispatcher,
     },
     validators::{indexed_package::FileValidationResult, ValidationInput},
+    ANY_ARCH,
 };
 
 /// A template struct that can be used to instantiate `Builder`s
@@ -133,8 +134,8 @@ impl Builder {
 
         // If the architecture of the formula is 'Any', use it instead of the target architecture
         let arch = match formula.package.arch.clone() {
-            FormulaPackageArch::Any(s) => s,
-            FormulaPackageArch::Specific(_) => template.arch,
+            None => ANY_ARCH.to_owned(),
+            Some(_) => template.arch,
         };
 
         let formula_path = template.formula_path;

@@ -7,6 +7,7 @@ use crate::{
     env::EnvironmentExecutable,
     package::{CorePackage, NameVersionPackage, NamedPackage, VersionedPackage},
     util::string::replace_package_variables,
+    ANY_ARCH,
 };
 
 /// The contents of a formula file
@@ -32,7 +33,7 @@ pub struct FormulaPackage {
     #[serde(default = "default_formula_package_strip")]
     pub strip: bool,
 
-    pub arch: FormulaPackageArch,
+    pub arch: Option<Vec<String>>,
 
     pub prepare: Option<String>,
     pub build: Option<String>,
@@ -40,14 +41,6 @@ pub struct FormulaPackage {
     pub package: Option<String>,
 
     pub sources: Option<Vec<FormulaPackageSource>>,
-}
-
-/// The architecture parsing enum
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum FormulaPackageArch {
-    Any(String),
-    Specific(Vec<String>),
 }
 
 /// A source for a package
@@ -79,8 +72,8 @@ impl FormulaPackage {
     /// Returns the architectures this package can be built for
     pub fn get_architectures(&self) -> Vec<String> {
         match &self.arch {
-            FormulaPackageArch::Any(a) => vec![a.to_string()],
-            FormulaPackageArch::Specific(s) => s.clone(),
+            None => vec![ANY_ARCH.to_string()],
+            Some(s) => s.clone(),
         }
     }
 
@@ -98,7 +91,7 @@ impl FormulaPackage {
         install_dir: &Path,
     ) -> Option<Vec<PackageBuildStep>> {
         // Check if the architecture is supported
-        if let FormulaPackageArch::Specific(archs) = &self.arch {
+        if let Some(archs) = &self.arch {
             if !archs.contains(&architecture.to_owned()) {
                 return None;
             }

@@ -2,6 +2,9 @@
 
 use std::path::PathBuf;
 
+/// The architecture string to use for architecture-independent packages
+pub static ANY_ARCH: &str = "any";
+
 /// The DIST directory. Default is `acacia`. This **HAS** to be relative to be able to join onto other paths
 pub static DIST_DIR: &str = "acacia";
 

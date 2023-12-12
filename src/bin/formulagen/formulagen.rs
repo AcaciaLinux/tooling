@@ -4,7 +4,7 @@ use clap::Parser;
 use config::Config;
 use tooling::{
     error::{Error, ErrorExt},
-    files::formula::{FormulaFile, FormulaPackage, FormulaPackageArch, FormulaPackageSource},
+    files::formula::{FormulaFile, FormulaPackage, FormulaPackageSource},
     util::{fs::create_dir_all, parse::write_toml},
 };
 
@@ -54,7 +54,7 @@ fn run(cli: Config) -> Result<(), Error> {
         target_dependencies: None,
         extra_dependencies: None,
         strip: true,
-        arch: FormulaPackageArch::Specific(arch),
+        arch: Some(arch),
         prepare: Some("cd $PKG_NAME-$PKG_VERSION && ".to_owned()),
         build: Some("cd $PKG_NAME-$PKG_VERSION && ".to_owned()),
         check: Some("cd $PKG_NAME-$PKG_VERSION && ".to_owned()),

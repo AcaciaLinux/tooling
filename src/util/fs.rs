@@ -75,6 +75,13 @@ pub fn rename(src: &Path, dest: &Path) -> Result<(), Error> {
     })
 }
 
+/// Remove a file
+///
+/// Uses the [std::fs::remove_file()] function
+pub fn remove_file(path: &Path) -> Result<(), Error> {
+    std::fs::remove_file(path).e_context(|| format!("Removing file '{}'", path.to_string_lossy()))
+}
+
 /// Opens a file using the [std::fs::File::open()] function
 /// # Arguments
 /// * `path` - The path to the file to open

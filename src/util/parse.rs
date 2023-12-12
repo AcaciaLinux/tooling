@@ -6,6 +6,8 @@ use serde::{de::DeserializeOwned, Serialize};
 
 use crate::error::{Error, ErrorExt};
 
+pub mod versionstring;
+
 /// Reads the contents of a file to a string
 /// # Arguments
 /// * `path` - The path to the file to read

@@ -78,6 +78,11 @@ impl Error {
     pub fn throw(error: ErrorType, context: String) -> Result<(), Error> {
         Err(Self::new_context(error, context))
     }
+
+    /// Provides a oneline error message
+    pub fn oneline(&self) -> String {
+        self.error.to_string()
+    }
 }
 
 impl std::fmt::Display for ErrorType {

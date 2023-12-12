@@ -222,11 +222,13 @@ impl Builder {
 
         // Try running each step
         for step in steps {
+            info!("Running build step '{}'", step.get_name());
             let status = env.execute(&step, signal_dispatcher)?;
             if !status.success() {
                 return Err(BuilderError::CommandFailed { status }
                     .throw(format!("Running build step '{}'", step.get_name())));
             }
+            info!("Build step '{}' exited with {}", step.get_name(), status);
         }
 
         let validation_input = ValidationInput {

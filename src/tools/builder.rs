@@ -197,6 +197,7 @@ impl Builder {
 
         let validation_input = ValidationInput {
             package_index: &self.target_dependency_index,
+            strip: self.formula.package.strip,
         };
 
         BuiltPackage::from_formula_validate(

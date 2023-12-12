@@ -61,6 +61,11 @@ impl ELFFile {
             }
         }
 
+        // For now, if allowed by the input, always strip binaries
+        if info.strip {
+            actions.push(ELFAction::Strip);
+        }
+
         ValidationResult { actions, errors }
     }
 }
@@ -82,6 +87,8 @@ pub enum ELFAction {
         /// The package holding the RUNPATH (the dependency)
         package: PackageInfo,
     },
+    /// Strip the binary
+    Strip,
 }
 
 impl ELFAction {
@@ -132,6 +139,12 @@ impl ELFAction {
                     target_package.get_real_path().join(file).to_string_lossy()
                 )
             }
+            Self::Strip => {
+                format!(
+                    "strip {}",
+                    target_package.get_real_path().join(file).to_string_lossy()
+                )
+            }
         })
     }
 }
@@ -147,6 +160,7 @@ impl DependencyProvider for ELFAction {
                 runpath: _,
                 package,
             } => vec![package],
+            Self::Strip => Vec::new(),
         }
     }
 }
@@ -172,6 +186,9 @@ impl std::fmt::Display for ELFAction {
                     runpath.to_string_lossy(),
                     package.get_full_name()
                 )
+            }
+            Self::Strip => {
+                write!(f, "Strip ELF file")
             }
         }
     }

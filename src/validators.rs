@@ -20,6 +20,8 @@ use self::indexed_package::FileValidationResult;
 pub struct ValidationInput<'a> {
     /// The index of packages a validator can use for finding packages and their contents
     pub package_index: &'a InstalledPackageIndex,
+    /// If the binaries should be stripped
+    pub strip: bool,
 }
 
 /// The result of a validation with multiple actions and (possibly) errors

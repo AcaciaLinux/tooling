@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use clap::Parser;
-use log::warn;
+use log::{debug, error, warn};
 use tooling::{
     abs_dist_dir, dist_dir,
     env::CustomExecutable,
@@ -51,8 +51,17 @@ fn run(signal_dispatcher: &SignalDispatcher, cli: BuilderConfig) -> Result<(), E
                 )
             }
             for action in file.actions {
-                let cmd = action.to_command(&file.path, &pkg.0, &abs_dist_dir())?;
-                println!("{}", cmd);
+                let mut cmd = action.to_command(&file.path, &pkg.0, &abs_dist_dir())?;
+                debug!("Running {:?}", cmd);
+
+                let output = cmd.output().e_context(|| "Running sond".to_owned())?;
+                if !output.status.success() {
+                    error!(
+                        "Validation command {:?} failed: {}",
+                        cmd,
+                        String::from_utf8(output.stderr).unwrap()
+                    )
+                }
             }
         }
 

@@ -48,8 +48,9 @@ fn run(signal_dispatcher: &SignalDispatcher, cli: BuilderConfig) -> Result<(), E
         for file in pkg.1 {
             for error in file.errors {
                 warn!(
-                    "VALIDATION for '{}' failed: {error}",
-                    file.path.to_string_lossy()
+                    "VALIDATION for '{}' failed: {}",
+                    file.path.to_string_lossy(),
+                    error.oneline()
                 )
             }
             for action in file.actions {

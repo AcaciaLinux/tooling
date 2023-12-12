@@ -82,6 +82,22 @@ pub fn remove_file(path: &Path) -> Result<(), Error> {
     std::fs::remove_file(path).e_context(|| format!("Removing file '{}'", path.to_string_lossy()))
 }
 
+/// Remove an empty directory
+///
+/// Uses the [std::fs::remove_dir()] function
+pub fn remove_dir(path: &Path) -> Result<(), Error> {
+    std::fs::remove_dir(path)
+        .e_context(|| format!("Removing empty directory '{}'", path.to_string_lossy()))
+}
+
+/// Remove a directory and all of its contents
+///
+/// Uses the [std::fs::remove_dir_all()] function
+pub fn remove_dir_all(path: &Path) -> Result<(), Error> {
+    std::fs::remove_dir_all(path)
+        .e_context(|| format!("Removing empty directory '{}'", path.to_string_lossy()))
+}
+
 /// Opens a file using the [std::fs::File::open()] function
 /// # Arguments
 /// * `path` - The path to the file to open

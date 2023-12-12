@@ -1,6 +1,6 @@
 use crate::{
     error::{Error, ErrorExt},
-    files::{package_index::IndexPackage, package_meta::PackageMetaFile},
+    files::package_meta::PackageMetaFile,
     util::{fs::Directory, parse::parse_toml},
 };
 use std::path::{Path, PathBuf};
@@ -32,20 +32,20 @@ pub struct InstalledPackage {
 }
 
 impl InstalledPackage {
-    /// Creates a new `InstalledPackage` from a `IndexPackage` by parsing the package metadata file and indexing the `root` directory
+    /// Creates a new `InstalledPackage` from a `CorePackage` by parsing the package metadata file and indexing the `root` directory
     ///
     /// An installed package will unwind symlinks, so symlinks to ELF files get treated as ELF files to ensure
     /// discoverability by validators
     /// # Arguments
-    /// * `index_pkg` - The IndexPackage to use for information on where to find the package
+    /// * `in_pkg` - The CorePackage to use for information on where to find the package
     /// * `acacia_dir` - The path to the `/acacia` directory to search for packages
-    pub fn parse_from_index(index_pkg: &IndexPackage, acacia_dir: &Path) -> Result<Self, Error> {
-        let pkg_path = index_pkg.get_path(acacia_dir);
+    pub fn parse_from_info(in_pkg: &dyn CorePackage, acacia_dir: &Path) -> Result<Self, Error> {
+        let pkg_path = in_pkg.get_path(acacia_dir);
 
         let context = || {
             format!(
                 "Parsing package {} at {}",
-                index_pkg.get_full_name(),
+                in_pkg.get_full_name(),
                 pkg_path.to_string_lossy()
             )
         };

@@ -7,13 +7,13 @@ use std::{
 use log::info;
 
 use crate::{
+    cache::download::DownloadCache,
     env::{BuildEnvironment, Environment, EnvironmentExecutable},
     error::{Error, ErrorExt, ErrorType, Throwable},
     files::formula::FormulaFile,
     package::{BuiltPackage, CorePackage, InstalledPackageIndex, PackageInfo},
     util::{
         archive,
-        download::download_to_file,
         mount::{BindMount, OverlayMount},
         parse::{parse_toml, versionstring::VersionString},
         signal::SignalDispatcher,
@@ -73,6 +73,9 @@ pub struct Builder {
 
     /// The build-id for the current builder instance
     build_id: String,
+
+    /// A cache for source files
+    source_cache: DownloadCache,
 }
 
 impl Builder {
@@ -110,6 +113,8 @@ impl Builder {
             &template.dist_dir,
         )?;
 
+        let source_cache = DownloadCache::new(template.workdir.join("source_cache"))?;
+
         Ok(Self {
             toolchain: template.toolchain,
             workdir: template.workdir,
@@ -120,6 +125,7 @@ impl Builder {
             formula_path,
             formula,
             build_id: uuid::Uuid::new_v4().to_string(),
+            source_cache,
         })
     }
 
@@ -285,7 +291,7 @@ impl Builder {
                 let formula_dir = &self.get_overlay_dir().join("merged").join("formula");
                 let dest_path = formula_dir.join(&dest);
 
-                download_to_file(
+                self.source_cache.download(
                     &url,
                     &dest_path,
                     &format!("Downloading source '{}' to '{}'", url, dest),

@@ -22,6 +22,7 @@ pub fn abs_dist_dir() -> PathBuf {
 const GIT_COMMIT_HASH: &str = env!("GIT_COMMIT_HASH");
 
 pub mod assert;
+pub mod cache;
 pub mod env;
 pub mod error;
 pub mod files;

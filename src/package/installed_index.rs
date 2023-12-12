@@ -1,13 +1,12 @@
 use std::{collections::LinkedList, ffi::OsString, path::Path};
 
-use log::debug;
-
 use crate::{
-    error::{Error, ErrorExt},
-    util::fs::SearchType,
+    error::{dependency::DependencyError, Error, Throwable},
+    util::{fs::SearchType, parse::versionstring::VersionString},
+    ANY_ARCH,
 };
 
-use super::{CorePackage, IndexedPackage, InstalledPackage, PackageIndexProvider};
+use super::{CorePackage, IndexedPackage, InstalledPackage, PackageInfo};
 
 /// A searchable index of installed packages
 #[derive(Default)]
@@ -17,45 +16,47 @@ pub struct InstalledPackageIndex {
 }
 
 impl InstalledPackageIndex {
-    /// Creates an index of installed packages from a index provider and an acacia directory to search for packages
+    /// Creates an installed package index from a list of packages to use and a search directory
+    ///
     /// # Arguments
-    /// * `index` - The `PackageIndexProvider` to parse from
-    /// * `acacia_dir` - The directory to search for packages
-    pub fn from_index(index: &dyn PackageIndexProvider, acacia_dir: &Path) -> Result<Self, Error> {
-        let context = || {
-            format!(
-                "Creating installed package index of {}",
-                acacia_dir.to_string_lossy()
-            )
-        };
-
-        let mut self_ = Self {
+    /// * `list` - The list of dependencies to search for
+    /// * `arch` - The preferred architecture
+    /// * `search_dir` - The directory to search for (dest_dir)
+    pub fn from_package_list(
+        list: &[VersionString],
+        arch: String,
+        search_dir: &Path,
+    ) -> Result<Self, Error> {
+        let mut res = Self {
             packages: Vec::new(),
         };
 
-        for package in index.get_packages() {
-            let path = package.get_path(acacia_dir);
+        let any_arch = ANY_ARCH.to_owned();
 
-            if !path.exists() {
-                Err(std::io::Error::new(
-                    std::io::ErrorKind::NotFound,
-                    format!(
-                        "Not Found: Package '{}' @ {}",
-                        package.get_full_name(),
-                        path.to_string_lossy()
-                    ),
-                ))
-                .e_context(context)?;
+        for version_string in list {
+            // First, try an architecture-specific package
+            let spec_info = PackageInfo::from_version_string(version_string.clone(), arch.clone());
+            let info = if spec_info.get_path(search_dir).exists() {
+                spec_info
             } else {
-                let pkg =
-                    InstalledPackage::parse_from_index(package, acacia_dir).e_context(context)?;
-                debug!("Found package '{:?}' at {}", pkg, path.to_string_lossy(),);
+                PackageInfo::from_version_string(version_string.clone(), any_arch.clone())
+            };
 
-                self_.packages.push(pkg);
+            if !info.get_path(search_dir).exists() {
+                return Err(DependencyError::Unresolved {
+                    arch,
+                    name: info.name,
+                    version: info.version,
+                    pkgver: info.pkgver,
+                }
+                .throw("Finding installed packages".to_owned()));
             }
+
+            res.packages
+                .push(InstalledPackage::parse_from_info(&info, search_dir)?);
         }
 
-        Ok(self_)
+        Ok(res)
     }
 
     /// Adds a package to the index

@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 use log::debug;
 use sys_mount::{UnmountDrop, UnmountFlags};
@@ -45,10 +48,16 @@ impl OverlayMount {
             )
         })?;
 
+        let mut done: HashMap<PathBuf, ()> = HashMap::new();
         let mut lower_s = String::new();
         for p in &lower {
-            lower_s.push_str(&p.to_string_lossy());
-            lower_s.push(':');
+            if !done.contains_key(p) {
+                done.insert(p.to_path_buf(), ());
+                lower_s.push_str(&p.to_string_lossy());
+                lower_s.push(':');
+            } else {
+                debug!("Deduplicated '{}'", p.to_string_lossy())
+            }
         }
         // Pop the last colon
         lower_s.pop();

@@ -36,8 +36,15 @@ pub struct PackageMeta {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PackageMetaDependency {
     pub arch: String,
-    pub req_version: String,
-    pub lnk_version: Option<String>,
+    pub req_version: PackageMetaDependencyVersion,
+    pub lnk_version: Option<PackageMetaDependencyVersion>,
+}
+
+/// A version of a package dependency
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PackageMetaDependencyVersion {
+    pub version: String,
+    pub pkgver: u32,
 }
 
 impl PackageMetaFile {
@@ -56,8 +63,14 @@ impl PackageMetaFile {
                 dep.name,
                 PackageMetaDependency {
                     arch: dep.arch,
-                    req_version: format!("{}/{}", dep.version, dep.pkgver),
-                    lnk_version: Some(format!("{}/{}", dep.version, dep.pkgver)),
+                    req_version: PackageMetaDependencyVersion {
+                        version: dep.version.clone(),
+                        pkgver: dep.pkgver,
+                    },
+                    lnk_version: Some(PackageMetaDependencyVersion {
+                        version: dep.version,
+                        pkgver: dep.pkgver,
+                    }),
                 },
             );
         }

@@ -50,7 +50,7 @@ impl OverlayMount {
 
         let mut done: HashMap<PathBuf, ()> = HashMap::new();
         let mut lower_s = String::new();
-        for p in &lower {
+        for p in lower.iter().rev() {
             if !done.contains_key(p) {
                 done.insert(p.to_path_buf(), ());
                 lower_s.push_str(&p.to_string_lossy());

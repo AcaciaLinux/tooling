@@ -21,6 +21,7 @@ pub struct InstalledPackageIndex {
 impl InstalledPackageIndex {
     /// Creates an installed package index from a list of packages to use and a search directory
     ///
+    /// TODO: Rudimentary dependency resolving, should probably be replaced with a real one...
     /// # Arguments
     /// * `list` - The list of dependencies to search for
     /// * `arch` - The preferred architecture
@@ -35,6 +36,7 @@ impl InstalledPackageIndex {
         };
 
         let any_arch = ANY_ARCH.to_owned();
+        let mut additional_deps: Vec<PackageInfo> = Vec::new();
 
         for version_string in list {
             // First, try an architecture-specific package
@@ -55,8 +57,31 @@ impl InstalledPackageIndex {
                 .throw("Finding installed packages".to_owned()));
             }
 
-            res.packages
-                .push(InstalledPackage::parse_from_info(&info, search_dir)?);
+            let package = InstalledPackage::parse_from_info(&info, search_dir)?;
+            additional_deps.append(&mut package.dependencies.clone());
+
+            res.packages.push(package);
+        }
+
+        while let Some(dep) = additional_deps.pop() {
+            if !dep.get_path(search_dir).exists() {
+                return Err(DependencyError::Unresolved {
+                    arch,
+                    name: dep.name,
+                    version: dep.version,
+                    pkgver: dep.pkgver,
+                }
+                .throw("Finding dependencies of installed packages".to_owned()));
+            }
+
+            let package = InstalledPackage::parse_from_info(&dep, search_dir)?;
+            for subdependency in &package.dependencies {
+                if !additional_deps.contains(&subdependency) {
+                    additional_deps.push(subdependency.clone());
+                }
+            }
+
+            res.packages.push(package);
         }
 
         Ok(res)

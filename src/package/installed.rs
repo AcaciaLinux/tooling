@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 use super::{
     ArchitecturePackage, BuiltPackage, CorePackage, DescribedPackage, IndexedPackage,
-    NameVersionPackage, NamedPackage, PathPackage, VersionedPackage,
+    NameVersionPackage, NamedPackage, PackageInfo, PathPackage, VersionedPackage,
 };
 
 /// An installed package
@@ -23,6 +23,9 @@ pub struct InstalledPackage {
     pub arch: String,
     /// The description for the package
     pub description: String,
+
+    /// The dependencies for this package
+    pub dependencies: Vec<PackageInfo>,
 
     /// The path to where the package lives
     pub path: PathBuf,
@@ -53,6 +56,16 @@ impl InstalledPackage {
         let pkg_meta_path = pkg_path.join("package.toml");
         let pkg_meta: PackageMetaFile = parse_toml(&pkg_meta_path).e_context(context)?;
 
+        let mut dependencies: Vec<PackageInfo> = Vec::new();
+        for (name, dep) in pkg_meta.package.dependencies {
+            dependencies.push(PackageInfo {
+                name,
+                version: dep.req_version.version,
+                pkgver: dep.req_version.pkgver,
+                arch: dep.arch,
+            })
+        }
+
         let dir = Directory::index(&pkg_path.join("root"), true, true).e_context(context)?;
 
         Ok(Self {
@@ -61,6 +74,7 @@ impl InstalledPackage {
             pkgver: pkg_meta.package.pkgver,
             arch: pkg_meta.package.arch,
             description: pkg_meta.package.description,
+            dependencies,
             path: pkg_path,
             index: dir,
         })
@@ -118,6 +132,7 @@ impl From<BuiltPackage> for InstalledPackage {
             pkgver: value.pkgver,
             arch: value.arch,
             description: value.description,
+            dependencies: value.dependencies,
             path: value.path,
             index: value.index,
         }

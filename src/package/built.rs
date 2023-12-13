@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::{
+    dist_dir,
     error::Error,
     files::formula::FormulaFile,
     util::fs::Directory,
@@ -54,14 +55,17 @@ impl BuiltPackage {
         validation_input: &ValidationInput,
         build_id: String,
     ) -> Result<(Self, Vec<FileValidationResult>), Error> {
-        let index = Directory::index(&path.join("data"), true, false)?;
+        let info = PackageInfo::from_package_arch(&src.package, arch.clone());
+
+        let package_archive_dir = path.join("data");
+        let archive_index = Directory::index(&package_archive_dir, true, false)?;
 
         // Construct a temporary self
         let mut self_ = Self {
             name: src.package.name.clone(),
             version: src.package.version.clone(),
             pkgver: src.package.pkgver,
-            arch,
+            arch: arch.clone(),
             description: src.package.description.clone(),
 
             formula: src,
@@ -70,13 +74,26 @@ impl BuiltPackage {
 
             path: path.to_owned(),
 
-            index,
-            build_id,
+            index: archive_index,
+            build_id: build_id.clone(),
         };
 
         let val_res = {
+            // Create a dummy package to use as an installed package
+            // This allows the validators to find files from 'self'
+            let dummy_package = {
+                let package_root_dir = path
+                    .join("data")
+                    .join(info.get_path(&dist_dir()))
+                    .join("root");
+
+                let mut dummy_self = self_.clone();
+                dummy_self.index = Directory::index(&package_root_dir, true, true)?;
+                dummy_self
+            };
+
             // Create an indexed package index with the current package in int
-            let index = IndexedPackageIndex::new(vec![&self_]);
+            let index = IndexedPackageIndex::new(vec![&dummy_package]);
             // Create a collection of the previous index and the created one
             let collection = IndexCollection {
                 indices: vec![&index, validation_input.package_index],

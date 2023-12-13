@@ -76,7 +76,7 @@ impl InstalledPackageIndex {
 
             let package = InstalledPackage::parse_from_info(&dep, search_dir)?;
             for subdependency in &package.dependencies {
-                if !additional_deps.contains(&subdependency) {
+                if !additional_deps.contains(subdependency) {
                     additional_deps.push(subdependency.clone());
                 }
             }

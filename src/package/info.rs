@@ -28,6 +28,27 @@ impl PackageInfo {
             arch,
         }
     }
+
+    /// Create a `PackageInfo` from a `NameVersionPackage` and an architecture
+    pub fn from_package_arch(package: &dyn NameVersionPackage, arch: String) -> Self {
+        Self {
+            name: package.get_name().to_owned(),
+            version: package.get_version().to_owned(),
+            pkgver: package.get_pkgver(),
+            arch,
+        }
+    }
+}
+
+impl From<&dyn CorePackage> for PackageInfo {
+    fn from(value: &dyn CorePackage) -> Self {
+        Self {
+            name: value.get_name().to_owned(),
+            version: value.get_version().to_owned(),
+            pkgver: value.get_pkgver(),
+            arch: value.get_arch().to_owned(),
+        }
+    }
 }
 
 impl NamedPackage for PackageInfo {

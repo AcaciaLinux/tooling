@@ -11,9 +11,7 @@ pub use error::*;
 
 use crate::{
     error::Error,
-    package::{
-        index::InstalledPackageIndex, CorePackage, DependencyProvider, PackageInfo, PathPackage,
-    },
+    package::{index::PackageIndex, CorePackage, DependencyProvider, PackageInfo, PathPackage},
 };
 
 use self::indexed_package::FileValidationResult;
@@ -21,7 +19,7 @@ use self::indexed_package::FileValidationResult;
 /// The information required for a validator to work
 pub struct ValidationInput<'a> {
     /// The index of packages a validator can use for finding packages and their contents
-    pub package_index: &'a InstalledPackageIndex,
+    pub package_index: &'a dyn PackageIndex,
     /// If the binaries should be stripped
     pub strip: bool,
 }

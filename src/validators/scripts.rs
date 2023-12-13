@@ -7,10 +7,7 @@ use std::{
 use crate::{
     assert_absolute,
     error::{Error, ErrorExt, Throwable},
-    package::{
-        index::PackageIndex, CorePackage, DependencyProvider, NamedPackage, PackageInfo,
-        PathPackage,
-    },
+    package::{CorePackage, DependencyProvider, NamedPackage, PackageInfo, PathPackage},
     util::fs::{ScriptFile, SearchType, ToPathBuf},
 };
 

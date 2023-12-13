@@ -114,6 +114,8 @@ impl BuiltPackage {
             .iter()
             .map(|d| (*d).clone())
             .collect();
+        // Drop dependencies on 'self'
+        self_.dependencies.retain(|p| p.name != self_.name);
 
         Ok((self_, val_res))
     }

@@ -8,6 +8,7 @@ use log::info;
 
 use crate::{
     cache::download::DownloadCache,
+    dist_dir,
     env::{BuildEnvironment, Environment, EnvironmentExecutable},
     error::{Error, ErrorExt, ErrorType, Throwable},
     files::formula::FormulaFile,
@@ -277,11 +278,19 @@ impl Builder {
             false,
         )?;
 
+        // The mount for the `dist` dir
+        let dist_mount = BindMount::new(
+            &self.dist_dir,
+            &self.get_overlay_dir().join("merged").join(dist_dir()),
+            true,
+        )?;
+
         let mut env = BuildEnvironment::new(Box::new(root_mount), self.toolchain.clone())
             .e_context(|| "Creating build environment".to_owned())?;
 
         env.add_mount(Box::new(formula_mount));
         env.add_mount(Box::new(install_mount));
+        env.add_mount(Box::new(dist_mount));
 
         // Download the sources and extract them if so desired
         if let Some(sources) = &self.formula.package.sources {

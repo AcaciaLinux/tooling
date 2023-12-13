@@ -7,6 +7,9 @@ use std::{collections::LinkedList, ffi::OsString};
 mod installed;
 pub use installed::*;
 
+mod indexed;
+pub use indexed::*;
+
 /// An index of packages that can have various functions to find stuff
 pub trait PackageIndex {
     /// Tries to find a filesystem entry in this package

@@ -10,6 +10,7 @@ use crate::{
 };
 
 use super::{
+    index::{IndexCollection, IndexedPackageIndex},
     ArchitecturePackage, BuildIDProvider, CorePackage, DependencyProvider, DescribedPackage,
     IndexedPackage, NameVersionPackage, NamedPackage, PackageInfo, PathPackage, VersionedPackage,
 };
@@ -73,8 +74,23 @@ impl BuiltPackage {
             build_id,
         };
 
-        // Validate the package
-        let val_res = self_.validate(validation_input);
+        let val_res = {
+            // Create an indexed package index with the current package in int
+            let index = IndexedPackageIndex::new(vec![&self_]);
+            // Create a collection of the previous index and the created one
+            let collection = IndexCollection {
+                indices: vec![&index, validation_input.package_index],
+            };
+
+            // Construct a new validation input
+            let val_input = ValidationInput {
+                package_index: &collection,
+                strip: validation_input.strip,
+            };
+
+            // Validate the package
+            self_.validate(&val_input)
+        };
 
         // Set the dependencies
         self_.dependencies = dependencies_from_validation_result(&val_res)

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, process::exit, sync::Arc};
 
 use clap::Parser;
 use log::{debug, error, warn};
@@ -111,7 +111,10 @@ fn main() {
     ctrlc::set_handler(move || dsp_clone.handle()).unwrap();
 
     match run(&dispatcher, cli) {
-        Ok(()) => {}
-        Err(e) => eprintln!("Failed to run builder: {e}"),
+        Ok(()) => exit(0),
+        Err(e) => {
+            eprintln!("Failed to run builder: {e}");
+            exit(1)
+        }
     };
 }

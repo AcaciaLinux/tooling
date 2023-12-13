@@ -7,7 +7,10 @@ use std::{
 use crate::{
     assert_absolute,
     error::{Error, ErrorExt, Throwable},
-    package::{CorePackage, DependencyProvider, NamedPackage, PackageInfo, PathPackage},
+    package::{
+        index::PackageIndex, CorePackage, DependencyProvider, NamedPackage, PackageInfo,
+        PathPackage,
+    },
     util::fs::{ELFFile, SearchType, ToPathBuf},
 };
 

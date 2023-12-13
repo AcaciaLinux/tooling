@@ -11,7 +11,9 @@ pub use error::*;
 
 use crate::{
     error::Error,
-    package::{CorePackage, DependencyProvider, InstalledPackageIndex, PackageInfo, PathPackage},
+    package::{
+        index::InstalledPackageIndex, CorePackage, DependencyProvider, PackageInfo, PathPackage,
+    },
 };
 
 use self::indexed_package::FileValidationResult;

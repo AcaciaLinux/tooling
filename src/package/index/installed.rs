@@ -6,7 +6,10 @@ use crate::{
     ANY_ARCH,
 };
 
-use super::{CorePackage, IndexedPackage, InstalledPackage, PackageInfo};
+use super::{
+    super::{CorePackage, IndexedPackage, InstalledPackage, PackageInfo},
+    PackageIndex,
+};
 
 /// A searchable index of installed packages
 #[derive(Default)]
@@ -66,15 +69,17 @@ impl InstalledPackageIndex {
         self.packages.push(package)
     }
 
-    /// Tries to find a filesystem entry in this package
-    /// # Arguments
-    /// * `entry` - The entry to search for
-    /// # Returns
-    /// A linked list constructing the path to the found file or `None`
-    pub fn find_fs_entry(
+    /// Returns a reference to the inner vector if installed packages
+    pub fn inner(&self) -> &Vec<InstalledPackage> {
+        &self.packages
+    }
+}
+
+impl PackageIndex for InstalledPackageIndex {
+    fn find_fs_entry(
         &self,
         entry: &SearchType,
-    ) -> Option<(LinkedList<OsString>, &InstalledPackage)> {
+    ) -> Option<(LinkedList<OsString>, &dyn IndexedPackage)> {
         for p in &self.packages {
             if let Some(found_entry) = p.get_index().find_entry(entry) {
                 return Some((found_entry, p));
@@ -82,9 +87,5 @@ impl InstalledPackageIndex {
         }
 
         None
-    }
-
-    pub fn inner(&self) -> &Vec<InstalledPackage> {
-        &self.packages
     }
 }

@@ -11,7 +11,7 @@ use crate::{
     env::{BuildEnvironment, Environment, EnvironmentExecutable},
     error::{Error, ErrorExt, ErrorType, Throwable},
     files::formula::FormulaFile,
-    package::{BuiltPackage, CorePackage, InstalledPackageIndex, PackageInfo},
+    package::{index::InstalledPackageIndex, BuiltPackage, CorePackage, PackageInfo},
     util::{
         archive,
         mount::{BindMount, OverlayMount},

@@ -11,7 +11,7 @@ use crate::{
     util::fs::{ELFFile, SearchType, ToPathBuf},
 };
 
-use super::{ValidationError, ValidationInput, ValidationResult};
+use super::{get_dest_path, ValidationError, ValidationInput, ValidationResult};
 
 impl ELFFile {
     /// Validate an `ELFFile`:
@@ -119,11 +119,8 @@ impl ELFAction {
                 interpreter,
                 package,
             } => {
-                let dest = target_package
-                    .get_path(dist_dir)
-                    .join("link")
-                    .join(package.get_name())
-                    .join(interpreter);
+                let dest =
+                    get_dest_path(target_package, package.get_name(), dist_dir).join(interpreter);
                 let mut command = Command::new("patchelf");
                 command.arg("--set-interpreter");
                 command.arg(dest);
@@ -131,11 +128,8 @@ impl ELFAction {
                 command
             }
             Self::AddRunPath { runpath, package } => {
-                let dest = target_package
-                    .get_path(dist_dir)
-                    .join("link")
-                    .join(package.get_name())
-                    .join(runpath);
+                let dest =
+                    get_dest_path(target_package, package.get_name(), dist_dir).join(runpath);
                 let mut command = Command::new("patchelf");
                 command.arg("--add-rpath");
                 command.arg(dest);

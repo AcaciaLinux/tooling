@@ -5,7 +5,11 @@ pub mod indexed_package;
 pub mod scripts;
 
 mod error;
-use std::{collections::HashMap, path::Path, process::Command};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 pub use error::*;
 
@@ -100,4 +104,19 @@ pub fn dependencies_from_validation_result(results: &[FileValidationResult]) -> 
     }
 
     res.into_iter().map(|s| s.1).collect()
+}
+
+/// Constructs a full path for a file of `target_package` that depends on `package_name`
+pub fn get_dest_path<T>(target_package: &T, package_name: &str, dist_dir: &Path) -> PathBuf
+where
+    T: CorePackage + PathPackage,
+{
+    if target_package.get_name() == package_name {
+        target_package.get_path(dist_dir)
+    } else {
+        target_package
+            .get_path(dist_dir)
+            .join("link")
+            .join(package_name)
+    }
 }

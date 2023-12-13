@@ -11,7 +11,7 @@ use crate::{
     util::fs::{ScriptFile, SearchType, ToPathBuf},
 };
 
-use super::{ValidationError, ValidationInput, ValidationResult};
+use super::{get_dest_path, ValidationError, ValidationInput, ValidationResult};
 
 impl ScriptFile {
     /// Validate an `Script`:
@@ -85,17 +85,13 @@ impl ScriptAction {
                 interpreter,
                 package,
             } => {
-                let dest = target_package
-                    .get_path(dist_dir)
-                    .join("link")
-                    .join(package.get_name())
+                let dest = get_dest_path(target_package, package.get_name(), dist_dir)
                     .join(&interpreter.1);
 
                 let mut command = Command::new("sed");
                 command.arg("-i");
-                command.arg("''");
                 command.arg(format!(
-                    "'1s/{}/{}/'",
+                    "1s/{}/{}/",
                     interpreter.0.to_string_lossy().replace('/', "\\/"),
                     dest.to_string_lossy().replace('/', "\\/"),
                 ));

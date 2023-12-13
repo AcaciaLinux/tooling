@@ -3,7 +3,7 @@ use crate::util::parse::versionstring::VersionString;
 use super::{ArchitecturePackage, CorePackage, NameVersionPackage, NamedPackage, VersionedPackage};
 
 /// Describes a package, just the neccessary stuff
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PackageInfo {
     /// The name of the package
     pub name: String,

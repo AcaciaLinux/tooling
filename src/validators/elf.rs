@@ -1,5 +1,7 @@
 //! Validators for `ELFFile` and general ELF-related stuff
 use std::{
+    borrow::Cow,
+    collections::HashMap,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -46,6 +48,7 @@ impl ELFFile {
                 }
             }
 
+            let mut needed_runpaths: HashMap<(PathBuf, PackageInfo), ()> = HashMap::new();
             // Validate all needed shared libraries
             for so_needed in &self.shared_needed {
                 if let Some(result) = info
@@ -54,10 +57,7 @@ impl ELFFile {
                 {
                     let mut path = result.0.to_path_buf();
                     path.pop();
-                    actions.push(ELFAction::AddRunPath {
-                        runpath: path,
-                        package: result.1.get_info(),
-                    })
+                    needed_runpaths.insert((path, result.1.get_info()), ());
                 } else {
                     errors.push(
                         ValidationError::UnresolvedDependency {
@@ -67,6 +67,10 @@ impl ELFFile {
                     )
                 }
             }
+
+            actions.push(ELFAction::SetRunpath {
+                paths: needed_runpaths.into_keys().collect(),
+            });
 
             // For now, if allowed by the input, always strip binaries
             if info.strip {
@@ -88,13 +92,8 @@ pub enum ELFAction {
         /// The package holding the interpreter (the dependency)
         package: PackageInfo,
     },
-    /// Add a `runpath` available in `package`
-    AddRunPath {
-        /// The RUNPATH to add
-        runpath: PathBuf,
-        /// The package holding the RUNPATH (the dependency)
-        package: PackageInfo,
-    },
+    /// Set the RUNPATH to the supplied paths provided by the packages
+    SetRunpath { paths: Vec<(PathBuf, PackageInfo)> },
     /// Strip the binary
     Strip,
 }
@@ -132,12 +131,19 @@ impl ELFAction {
                 command.arg(target_package.get_real_path().join(file));
                 command
             }
-            Self::AddRunPath { runpath, package } => {
-                let dest =
-                    get_dest_path(target_package, package.get_name(), dist_dir).join(runpath);
+            Self::SetRunpath { paths } => {
+                let sond: Vec<String> = paths
+                    .iter()
+                    .map(|p| {
+                        get_dest_path(target_package, p.1.get_name(), dist_dir)
+                            .join(&p.0)
+                            .to_string_lossy()
+                            .to_string()
+                    })
+                    .collect();
                 let mut command = Command::new("patchelf");
-                command.arg("--add-rpath");
-                command.arg(dest);
+                command.arg("--set-rpath");
+                command.arg(sond.join(":"));
                 command.arg(target_package.get_real_path().join(file));
                 command
             }
@@ -157,10 +163,7 @@ impl DependencyProvider for ELFAction {
                 interpreter: _,
                 package,
             } => vec![package],
-            Self::AddRunPath {
-                runpath: _,
-                package,
-            } => vec![package],
+            Self::SetRunpath { paths } => paths.iter().map(|p| &p.1).collect(),
             Self::Strip => Vec::new(),
         }
     }
@@ -180,13 +183,9 @@ impl std::fmt::Display for ELFAction {
                     package.get_full_name()
                 )
             }
-            Self::AddRunPath { runpath, package } => {
-                write!(
-                    f,
-                    "Add to ELF RUNPATH: '{}' of '{}'",
-                    runpath.to_string_lossy(),
-                    package.get_full_name()
-                )
+            Self::SetRunpath { paths } => {
+                let paths: Vec<Cow<str>> = paths.iter().map(|p| p.0.to_string_lossy()).collect();
+                write!(f, "Set ELF RUNPATH to {}", paths.join(":"))
             }
             Self::Strip => {
                 write!(f, "Strip ELF file")

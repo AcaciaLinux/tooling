@@ -112,7 +112,10 @@ impl Environment for BuildEnvironment {
             .arg(executable.get_command());
 
         let tc_dir = self.toolchain_dir.to_string_lossy();
-        let path = format!("{}/bin:{}/sbin", tc_dir, tc_dir);
+        let path = format!(
+            "/bin:/sbin:/usr/bin:/usr/sbin:{}/bin:{}/sbin",
+            tc_dir, tc_dir
+        );
 
         command
             .env("PATH", path)

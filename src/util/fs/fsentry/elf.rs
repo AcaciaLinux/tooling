@@ -13,6 +13,8 @@ use crate::{
 /// A structure representing an ELF file
 #[derive(Clone)]
 pub struct ELFFile {
+    /// The type of ELF file at hand
+    pub ty: ELFType,
     /// The interpreter requested by the binary (if available)
     pub interpreter: Option<PathBuf>,
     /// The needed shared libraries
@@ -22,6 +24,24 @@ pub struct ELFFile {
 
     /// The name of the file
     pub name: OsString,
+}
+
+/// The type of ELF file at hand
+#[repr(u16)]
+#[derive(Clone, PartialEq)]
+pub enum ELFType {
+    /// `ET_NONE`
+    Unknown = 0,
+    /// `ET_REL`
+    Relocatable = 1,
+    /// `ET_EXEC`
+    Executable = 2,
+    /// `ET_DYN`
+    Shared = 3,
+    /// `ET_CORE`
+    Core = 4,
+    /// Others
+    Other = 0xFFFF,
 }
 
 impl ELFFile {
@@ -38,6 +58,7 @@ impl ELFFile {
             .e_context(|| format!("Parsing ELF file at {}", &path.to_string_lossy()))?;
 
         let elf_file_struct = ELFFile {
+            ty: ELFType::from_u16(file.ehdr.e_type),
             interpreter: file.get_interpreter().e_context(|| {
                 format!(
                     "Reading interpreter of ELF file {}",
@@ -70,5 +91,19 @@ impl ELFFile {
         };
 
         Ok(elf_file_struct)
+    }
+}
+
+impl ELFType {
+    /// Parses the elf type from a `u16`. Invalid values result in `Self::Other`
+    pub fn from_u16(v: u16) -> Self {
+        match v {
+            0 => Self::Unknown,
+            1 => Self::Relocatable,
+            2 => Self::Executable,
+            3 => Self::Shared,
+            4 => Self::Core,
+            _ => Self::Other,
+        }
     }
 }

@@ -8,13 +8,13 @@ use crate::{
     assert_absolute,
     error::{Error, ErrorExt, Throwable},
     package::{CorePackage, DependencyProvider, NamedPackage, PackageInfo, PathPackage},
-    util::fs::{ELFFile, SearchType, ToPathBuf},
+    util::fs::{ELFFile, ELFType, SearchType, ToPathBuf},
 };
 
 use super::{get_dest_path, ValidationError, ValidationInput, ValidationResult};
 
 impl ELFFile {
-    /// Validate an `ELFFile`:
+    /// Validate an `ELFFile` (Only `ET_DYN` and `ET_EXEC`):
     /// - Make sure the `interpreter` is linkable and modify the path for the correct location
     /// - Modify the `RUNPATH`s to be able to link against shared libraries
     /// # Arguments
@@ -23,50 +23,55 @@ impl ELFFile {
         let mut actions = Vec::new();
         let mut errors = Vec::new();
 
-        // Validate the interpreter
-        if let Some(interpreter) = &self.interpreter {
-            if let Some(filename) = interpreter.file_name() {
-                if let Some(result) = info.package_index.find_fs_entry(&SearchType::ELF(filename)) {
-                    actions.push(ELFAction::SetInterpreter {
-                        interpreter: result.0.to_path_buf(),
+        // Do only patch and strip `Dynamic` and `Executable` ELF files
+        if self.ty == ELFType::Shared || self.ty == ELFType::Executable {
+            // Validate the interpreter
+            if let Some(interpreter) = &self.interpreter {
+                if let Some(filename) = interpreter.file_name() {
+                    if let Some(result) =
+                        info.package_index.find_fs_entry(&SearchType::ELF(filename))
+                    {
+                        actions.push(ELFAction::SetInterpreter {
+                            interpreter: result.0.to_path_buf(),
+                            package: result.1.get_info(),
+                        })
+                    } else {
+                        errors.push(
+                            ValidationError::UnresolvedDependency {
+                                filename: interpreter.as_os_str().to_owned(),
+                            }
+                            .throw("Resolving ELF interpreter".to_string()),
+                        )
+                    }
+                }
+            }
+
+            // Validate all needed shared libraries
+            for so_needed in &self.shared_needed {
+                if let Some(result) = info
+                    .package_index
+                    .find_fs_entry(&SearchType::ELF(so_needed))
+                {
+                    let mut path = result.0.to_path_buf();
+                    path.pop();
+                    actions.push(ELFAction::AddRunPath {
+                        runpath: path,
                         package: result.1.get_info(),
                     })
                 } else {
                     errors.push(
                         ValidationError::UnresolvedDependency {
-                            filename: interpreter.as_os_str().to_owned(),
+                            filename: so_needed.to_owned(),
                         }
-                        .throw("Resolving ELF interpreter".to_string()),
+                        .throw("Resolving needed shared object".to_string()),
                     )
                 }
             }
-        }
 
-        // Validate all needed shared libraries
-        for so_needed in &self.shared_needed {
-            if let Some(result) = info
-                .package_index
-                .find_fs_entry(&SearchType::ELF(so_needed))
-            {
-                let mut path = result.0.to_path_buf();
-                path.pop();
-                actions.push(ELFAction::AddRunPath {
-                    runpath: path,
-                    package: result.1.get_info(),
-                })
-            } else {
-                errors.push(
-                    ValidationError::UnresolvedDependency {
-                        filename: so_needed.to_owned(),
-                    }
-                    .throw("Resolving needed shared object".to_string()),
-                )
+            // For now, if allowed by the input, always strip binaries
+            if info.strip {
+                actions.push(ELFAction::Strip);
             }
-        }
-
-        // For now, if allowed by the input, always strip binaries
-        if info.strip {
-            actions.push(ELFAction::Strip);
         }
 
         ValidationResult { actions, errors }

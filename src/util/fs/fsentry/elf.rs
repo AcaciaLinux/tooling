@@ -15,6 +15,8 @@ use crate::{
 pub struct ELFFile {
     /// The type of ELF file at hand
     pub ty: ELFType,
+    /// The entry point for the file, if there is none, this is `0`
+    pub entry_point: u64,
     /// The interpreter requested by the binary (if available)
     pub interpreter: Option<PathBuf>,
     /// The needed shared libraries
@@ -59,6 +61,7 @@ impl ELFFile {
 
         let elf_file_struct = ELFFile {
             ty: ELFType::from_u16(file.ehdr.e_type),
+            entry_point: file.ehdr.e_entry,
             interpreter: file.get_interpreter().e_context(|| {
                 format!(
                     "Reading interpreter of ELF file {}",
@@ -91,6 +94,20 @@ impl ELFFile {
         };
 
         Ok(elf_file_struct)
+    }
+
+    /// Checks if this ELF file is an executable by
+    /// - Checking if the `ty` is `Executable` or
+    /// - The `ty` is `Shared` and the `entry_point` is **not** 0
+    pub fn is_executable(&self) -> bool {
+        self.ty == ELFType::Executable || (self.ty == ELFType::Shared && self.entry_point != 0)
+    }
+
+    /// Checks if this ELF file is a library by
+    /// - Checking if the `ty` is `Shared`
+    /// - And the `entry_point` **is** 0
+    pub fn is_library(&self) -> bool {
+        self.ty == ELFType::Shared && self.entry_point == 0
     }
 }
 

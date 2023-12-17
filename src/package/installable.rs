@@ -27,6 +27,11 @@ pub struct InstallablePackage {
 
     pub dependencies: Vec<PackageInfo>,
 
+    /// A list of directories in this package that contain executables
+    pub executable_dirs: Vec<PathBuf>,
+    /// A list of directories in this package that contain libraries
+    pub library_dirs: Vec<PathBuf>,
+
     pub path: PathBuf,
 
     pub index: Directory,
@@ -89,6 +94,8 @@ impl InstallablePackage {
             arch: built_package.arch,
             description: built_package.description,
             dependencies: built_package.dependencies,
+            executable_dirs: built_package.executable_dirs,
+            library_dirs: built_package.library_dirs,
             path: built_package.path,
             index: built_package.index,
             build_id: built_package.build_id,
@@ -151,6 +158,14 @@ impl CorePackage for InstallablePackage {}
 impl IndexedPackage for InstallablePackage {
     fn get_index(&self) -> &Directory {
         &self.index
+    }
+
+    fn get_executable_dirs(&self) -> &[PathBuf] {
+        &self.executable_dirs
+    }
+
+    fn get_library_dirs(&self) -> &[PathBuf] {
+        &self.library_dirs
     }
 }
 

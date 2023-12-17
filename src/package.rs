@@ -124,6 +124,12 @@ pub trait IndexedPackage: CorePackage + PathPackage {
     /// Returns the index of the contained files starting from `<pkg_dir>/root`
     fn get_index(&self) -> &Directory;
 
+    /// Returns the directores containing executable files
+    fn get_executable_dirs(&self) -> &[PathBuf];
+
+    /// Returns the directoreis containing library files
+    fn get_library_dirs(&self) -> &[PathBuf];
+
     /// Tries to find a filesystem entry in this package
     /// # Arguments
     /// * `entry` - The entry to search for

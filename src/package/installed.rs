@@ -6,8 +6,8 @@ use crate::{
 use std::path::{Path, PathBuf};
 
 use super::{
-    ArchitecturePackage, BuiltPackage, CorePackage, DescribedPackage, IndexedPackage,
-    NameVersionPackage, NamedPackage, PackageInfo, PathPackage, VersionedPackage,
+    ArchitecturePackage, CorePackage, DescribedPackage, IndexedPackage, NameVersionPackage,
+    NamedPackage, PackageInfo, PathPackage, VersionedPackage,
 };
 
 /// An installed package
@@ -26,6 +26,11 @@ pub struct InstalledPackage {
 
     /// The dependencies for this package
     pub dependencies: Vec<PackageInfo>,
+
+    /// A list of directories in this package that contain executables
+    pub executable_dirs: Vec<PathBuf>,
+    /// A list of directories in this package that contain libraries
+    pub library_dirs: Vec<PathBuf>,
 
     /// The path to where the package lives
     pub path: PathBuf,
@@ -75,6 +80,8 @@ impl InstalledPackage {
             arch: pkg_meta.package.arch,
             description: pkg_meta.package.description,
             dependencies,
+            executable_dirs: pkg_meta.package.executable_dirs,
+            library_dirs: pkg_meta.package.library_dirs,
             path: pkg_path,
             index: dir,
         })
@@ -110,6 +117,14 @@ impl IndexedPackage for InstalledPackage {
     fn get_index(&self) -> &Directory {
         &self.index
     }
+
+    fn get_executable_dirs(&self) -> &[PathBuf] {
+        &self.executable_dirs
+    }
+
+    fn get_library_dirs(&self) -> &[PathBuf] {
+        &self.library_dirs
+    }
 }
 
 impl DescribedPackage for InstalledPackage {
@@ -121,20 +136,5 @@ impl DescribedPackage for InstalledPackage {
 impl PathPackage for InstalledPackage {
     fn get_real_path(&self) -> PathBuf {
         self.path.clone()
-    }
-}
-
-impl From<BuiltPackage> for InstalledPackage {
-    fn from(value: BuiltPackage) -> Self {
-        Self {
-            name: value.name,
-            version: value.version,
-            pkgver: value.pkgver,
-            arch: value.arch,
-            description: value.description,
-            dependencies: value.dependencies,
-            path: value.path,
-            index: value.index,
-        }
     }
 }

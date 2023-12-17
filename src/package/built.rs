@@ -1,10 +1,13 @@
-use std::path::{Path, PathBuf};
+use std::{
+    collections::{HashMap, LinkedList},
+    path::{Path, PathBuf},
+};
 
 use crate::{
     dist_dir,
     error::Error,
     files::formula::FormulaFile,
-    util::fs::Directory,
+    util::fs::{Directory, FSEntry, ToPathBuf},
     validators::{
         dependencies_from_validation_result, indexed_package::FileValidationResult, ValidationInput,
     },
@@ -28,6 +31,11 @@ pub struct BuiltPackage {
     pub formula: FormulaFile,
 
     pub dependencies: Vec<PackageInfo>,
+
+    /// A list of directories in this package that contain executables
+    pub executable_dirs: Vec<PathBuf>,
+    /// A list of directories in this package that contain libraries
+    pub library_dirs: Vec<PathBuf>,
 
     pub path: PathBuf,
 
@@ -74,6 +82,9 @@ impl BuiltPackage {
 
             path: path.to_owned(),
 
+            executable_dirs: Vec::new(),
+            library_dirs: Vec::new(),
+
             index: archive_index,
             build_id: build_id.clone(),
         };
@@ -117,6 +128,33 @@ impl BuiltPackage {
         // Drop dependencies on 'self'
         self_.dependencies.retain(|p| p.name != self_.name);
 
+        // Search for executable and library directories
+        {
+            let mut exec_dirs: HashMap<PathBuf, ()> = HashMap::new();
+            let mut lib_dirs: HashMap<PathBuf, ()> = HashMap::new();
+
+            self_
+                .index
+                .iterate(&mut LinkedList::new(), true, &mut |path, entry| {
+                    // Check if the entry is an ELF file
+                    if let FSEntry::ELF(elf) = entry {
+                        // The path is prepended with 'data/', strip that
+                        let mut path = path.clone();
+                        path.pop_front();
+
+                        if elf.is_executable() {
+                            exec_dirs.insert(path.to_path_buf(), ());
+                        } else if elf.is_library() {
+                            lib_dirs.insert(path.to_path_buf(), ());
+                        }
+                    }
+                    true
+                });
+
+            self_.executable_dirs = exec_dirs.into_keys().collect();
+            self_.library_dirs = lib_dirs.into_keys().collect();
+        }
+
         Ok((self_, val_res))
     }
 }
@@ -149,6 +187,14 @@ impl CorePackage for BuiltPackage {}
 impl IndexedPackage for BuiltPackage {
     fn get_index(&self) -> &Directory {
         &self.index
+    }
+
+    fn get_executable_dirs(&self) -> &[PathBuf] {
+        &self.executable_dirs
+    }
+
+    fn get_library_dirs(&self) -> &[PathBuf] {
+        &self.library_dirs
     }
 }
 

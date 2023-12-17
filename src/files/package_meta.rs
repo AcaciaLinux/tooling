@@ -1,9 +1,11 @@
 //! Data structures to parse a package metadata file
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::package::{BuildIDProvider, CorePackage, DependencyProvider, DescribedPackage};
+use crate::package::{
+    BuildIDProvider, CorePackage, DependencyProvider, DescribedPackage, IndexedPackage,
+};
 
 /// The current version for the package meta file
 static CUR_VERSION: u32 = 1;
@@ -30,6 +32,12 @@ pub struct PackageMeta {
     pub build_id: String,
 
     pub dependencies: HashMap<String, PackageMetaDependency>,
+
+    #[serde(default)]
+    pub executable_dirs: Vec<PathBuf>,
+
+    #[serde(default)]
+    pub library_dirs: Vec<PathBuf>,
 }
 
 /// A dependency of the package in the package metadata file
@@ -53,7 +61,7 @@ impl PackageMetaFile {
     /// * `in_package` - The package to generate this file from
     pub fn from_package<T>(in_package: &T) -> Self
     where
-        T: CorePackage + DescribedPackage + BuildIDProvider + DependencyProvider,
+        T: CorePackage + DescribedPackage + BuildIDProvider + DependencyProvider + IndexedPackage,
     {
         // Take all dependencies and make their versions the required and the linked ones
         let mut dependencies = HashMap::new();
@@ -84,6 +92,8 @@ impl PackageMetaFile {
             description: in_package.get_description().to_string(),
             build_id: in_package.get_build_id().to_string(),
             dependencies,
+            executable_dirs: in_package.get_executable_dirs().to_vec(),
+            library_dirs: in_package.get_library_dirs().to_vec(),
         };
 
         Self {

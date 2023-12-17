@@ -27,27 +27,7 @@ impl ELFFile {
 
         // Do only patch and strip `Dynamic` and `Executable` ELF files
         if self.ty == ELFType::Shared || self.ty == ELFType::Executable {
-            // Validate the interpreter
-            if let Some(interpreter) = &self.interpreter {
-                if let Some(filename) = interpreter.file_name() {
-                    if let Some(result) =
-                        info.package_index.find_fs_entry(&SearchType::ELF(filename))
-                    {
-                        actions.push(ELFAction::SetInterpreter {
-                            interpreter: result.0.to_path_buf(),
-                            package: result.1.get_info(),
-                        })
-                    } else {
-                        errors.push(
-                            ValidationError::UnresolvedDependency {
-                                filename: interpreter.as_os_str().to_owned(),
-                            }
-                            .throw("Resolving ELF interpreter".to_string()),
-                        )
-                    }
-                }
-            }
-
+            // First, validate the needed so libraries
             let mut needed_runpaths: HashMap<(PathBuf, PackageInfo), ()> = HashMap::new();
             // Validate all needed shared libraries
             for so_needed in &self.shared_needed {
@@ -71,6 +51,27 @@ impl ELFFile {
             actions.push(ELFAction::SetRunpath {
                 paths: needed_runpaths.into_keys().collect(),
             });
+
+            // Validate the interpreter
+            if let Some(interpreter) = &self.interpreter {
+                if let Some(filename) = interpreter.file_name() {
+                    if let Some(result) =
+                        info.package_index.find_fs_entry(&SearchType::ELF(filename))
+                    {
+                        actions.push(ELFAction::SetInterpreter {
+                            interpreter: result.0.to_path_buf(),
+                            package: result.1.get_info(),
+                        })
+                    } else {
+                        errors.push(
+                            ValidationError::UnresolvedDependency {
+                                filename: interpreter.as_os_str().to_owned(),
+                            }
+                            .throw("Resolving ELF interpreter".to_string()),
+                        )
+                    }
+                }
+            }
 
             // For now, if allowed by the input, always strip binaries
             if info.strip {

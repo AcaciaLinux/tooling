@@ -5,7 +5,7 @@ use crate::{
     error::{Error, ErrorExt},
     files::package_meta,
     util::{
-        fs::{create_dir_all, create_symlink, Directory},
+        fs::{create_dir_all, create_symlink, file_create, Directory},
         parse::write_toml,
     },
 };
@@ -93,6 +93,33 @@ impl InstallablePackage {
             index: built_package.index,
             build_id: built_package.build_id,
         })
+    }
+
+    /// Archives this package into a `tar xz` archive file
+    /// # Arguments
+    /// * `archive_path` - The path to place the archived package at
+    pub fn archive(&self, archive_path: &Path) -> Result<(), Error> {
+        let context = || {
+            format!(
+                "Archiving package {} to '{}'",
+                self.get_full_name(),
+                archive_path.to_string_lossy()
+            )
+        };
+
+        let xz_file = file_create(archive_path).e_context(context)?;
+        let xz = xz::write::XzEncoder::new(xz_file, 9);
+
+        let mut builder = tar::Builder::new(xz);
+        builder.follow_symlinks(false);
+        builder.mode(tar::HeaderMode::Deterministic);
+
+        builder
+            .append_dir_all(self.get_full_name(), self.get_real_path())
+            .e_context(|| "When archiving".to_owned())
+            .e_context(context)?;
+
+        Ok(())
     }
 }
 

@@ -11,6 +11,7 @@ use crate::{
         indexed_package::{validate_indexed_package, FileValidationResult},
         ValidationInput,
     },
+    PACKAGE_ARCHIVE_FILE_SUFFIX,
 };
 
 mod installed;
@@ -86,6 +87,11 @@ pub trait CorePackage:
             pkgver: self.get_pkgver(),
             arch: self.get_arch().to_string(),
         }
+    }
+
+    /// Returns the name for the archive file for this package
+    fn get_archive_name(&self) -> String {
+        format!("{}{}", self.get_full_name(), PACKAGE_ARCHIVE_FILE_SUFFIX)
     }
 }
 

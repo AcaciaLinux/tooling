@@ -1,12 +1,12 @@
 use std::{collections::HashMap, process::exit, sync::Arc};
 
 use clap::Parser;
-use log::{debug, error, warn};
+use log::{debug, error, info, warn};
 use tooling::{
     abs_dist_dir, dist_dir,
     env::CustomExecutable,
     error::{Error, ErrorExt},
-    package::{BuildIDProvider, CorePackage, InstallablePackage, PathPackage},
+    package::{BuildIDProvider, CorePackage, InstallablePackage},
     tools::builder::{Builder, BuilderTemplate},
     util::{fs, signal::SignalDispatcher},
 };
@@ -74,28 +74,30 @@ fn run(signal_dispatcher: &SignalDispatcher, cli: BuilderConfig) -> Result<(), E
             }
         }
 
-        let mut installable = InstallablePackage::from_built(pkg.0, &dist_dir())?;
+        let installable = InstallablePackage::from_built(pkg.0, &dist_dir())?;
         fs::create_dir_all(&cli.output_dir)?;
-        let new_path = cli.output_dir.join(installable.get_full_name());
 
-        if new_path.exists() {
+        let archive_path = cli.output_dir.join(installable.get_archive_name());
+        if archive_path.exists() {
             warn!(
                 "Removing old build artifact at '{}'",
-                new_path.to_string_lossy()
+                archive_path.to_string_lossy()
             );
-            fs::remove_dir_all(&new_path)
-                .e_context(|| "Removing old package archive".to_owned())?;
+            fs::remove_file(&archive_path)
+                .e_context(|| "Removing old package archive file".to_owned())?;
         }
 
-        fs::rename(&installable.get_real_path(), &new_path)
-            .e_context(|| "Moving package archive".to_owned())?;
-        installable.path = new_path;
+        info!(
+            "Archiving package to '{}'...",
+            archive_path.to_string_lossy()
+        );
+        installable.archive(&archive_path)?;
 
         eprintln!(
             "Built package '{}' [{}] available at {}",
             installable.get_full_name(),
             installable.get_build_id(),
-            installable.get_real_path().to_string_lossy()
+            archive_path.to_string_lossy()
         );
     }
 

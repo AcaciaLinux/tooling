@@ -42,6 +42,10 @@ pub struct BuilderConfig {
     /// The directory to put built packages into
     pub output_dir: PathBuf,
 
+    #[arg(long, default_value_t = false)]
+    /// Skip validation actions, leaving the built package in an unpatched state
+    pub skip_validation: bool,
+
     /// The formula to build
     pub formula: PathBuf,
 }

@@ -42,26 +42,35 @@ fn run(signal_dispatcher: &SignalDispatcher, cli: BuilderConfig) -> Result<(), E
     } else {
         let pkg = builder.build(signal_dispatcher).e_context(context)?;
 
-        for file in pkg.1 {
-            for error in file.errors {
+        if !cli.skip_validation {
+            for file in &pkg.1 {
+                for action in &file.actions {
+                    let mut cmd = action.to_command(&file.path, &pkg.0, &abs_dist_dir())?;
+                    debug!("Running {:?}", cmd);
+
+                    let output = cmd.output().e_context(|| "Running sond".to_owned())?;
+                    if !output.status.success() {
+                        error!(
+                            "Validation command {:?} failed: {}",
+                            cmd,
+                            String::from_utf8(output.stderr).unwrap()
+                        )
+                    }
+                }
+            }
+        } else {
+            warn!(
+                "Skipping validation actions! This could leave this package in an unusable state!"
+            );
+        }
+
+        for file in &pkg.1 {
+            for error in &file.errors {
                 warn!(
                     "VALIDATION for '{}' failed: {}",
                     file.path.to_string_lossy(),
                     error.oneline()
                 )
-            }
-            for action in file.actions {
-                let mut cmd = action.to_command(&file.path, &pkg.0, &abs_dist_dir())?;
-                debug!("Running {:?}", cmd);
-
-                let output = cmd.output().e_context(|| "Running sond".to_owned())?;
-                if !output.status.success() {
-                    error!(
-                        "Validation command {:?} failed: {}",
-                        cmd,
-                        String::from_utf8(output.stderr).unwrap()
-                    )
-                }
             }
         }
 

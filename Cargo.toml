@@ -5,9 +5,15 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+builder = ["mount"]
+
+mount = ["dep:sys-mount"]
+
 [[bin]]
 name = "branch"
 path = "src/bin/branch/branch.rs"
+required-features = ["builder"]
 
 [[bin]]
 name = "formulagen"
@@ -21,10 +27,12 @@ infer = "0.15.0"
 log = "0.4.20"
 pretty_env_logger = "0.5.0"
 serde = { version = "1.0.192", features = ["derive"] }
-sys-mount = { version = "2.1.0", default-features = false }
 toml = { version = "0.8.8", features = ["display"] }
 uname = "0.1.1"
 uuid = { version = "1.6.1", features = ["v4"] }
+
+# Feature: mount
+sys-mount = { version = "3.0.1", default-features = false, optional = true }
 
 curl = { version = "0.4.44", default-features = false, features = [
     "static-ssl",

@@ -1,6 +1,8 @@
 //! Environment structures to represent different environments for actions to take place
 
+#[cfg(feature = "mount")]
 mod buildenv;
+#[cfg(feature = "mount")]
 pub use buildenv::*;
 
 use std::{collections::HashMap, ffi::OsString};

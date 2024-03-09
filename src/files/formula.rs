@@ -1,13 +1,11 @@
 //! The data structures to parse from the formula file, refer to <https://acacialinux.github.io/concept/formula> for more information
-use std::{collections::HashMap, path::Path};
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    env::EnvironmentExecutable,
-    package::{CorePackage, NameVersionPackage, NamedPackage, VersionedPackage},
+    package::CorePackage,
     util::{parse::versionstring::VersionString, string::replace_package_variables},
-    ANY_ARCH, DIST_DIR,
+    ANY_ARCH,
 };
 
 /// The contents of a formula file
@@ -77,109 +75,7 @@ impl FormulaPackage {
             Some(s) => s.clone(),
         }
     }
-
-    /// Returns the build steps for building this package
-    /// # Arguments
-    /// * `formula_mountpoint` - The path where the formula's parent directory is mounted **inside** the chroot
-    /// * `architecture` - The architecture to build the package for (this is checked and returns an error if the architecture is not supported)
-    /// * `install_dir` - The directory to install the package into **inside** the chroot (`<package_name>/data`)
-    /// # Returns
-    /// A vector of `PackageBuildStep`s or `None` if the architecture is not supported
-    pub fn get_buildsteps(
-        &self,
-        formula_mountpoint: &Path,
-        architecture: &str,
-        install_dir: &Path,
-    ) -> Option<Vec<PackageBuildStep>> {
-        // Check if the architecture is supported
-        if let Some(archs) = &self.arch {
-            if !archs.contains(&architecture.to_owned()) {
-                return None;
-            }
-        }
-
-        let mut res: Vec<PackageBuildStep> = Vec::new();
-
-        // Create the environment variables
-        let env_vars = PackageEnvVars {
-            env_pkg_name: self.name.clone(),
-            env_pkg_version: self.version.clone(),
-            env_pkg_arch: architecture.to_owned(),
-            env_pkg_install_dir: install_dir.to_string_lossy().to_string(),
-            env_pkg_root: format!(
-                "/{DIST_DIR}/{architecture}/{}/{}/{}/root",
-                self.name, self.version, self.pkgver
-            ),
-        };
-
-        // The 'prepare' build step for the formula
-        if let Some(cmd) = &self.prepare {
-            res.push(PackageBuildStep {
-                name: "prepare".to_string(),
-                workdir: formula_mountpoint.to_string_lossy().to_string(),
-
-                command: cmd.clone(),
-
-                env_vars: env_vars.clone(),
-            })
-        }
-
-        // The 'build' build step for the formula
-        if let Some(cmd) = &self.build {
-            res.push(PackageBuildStep {
-                name: "build".to_string(),
-                workdir: formula_mountpoint.to_string_lossy().to_string(),
-
-                command: cmd.clone(),
-
-                env_vars: env_vars.clone(),
-            })
-        }
-
-        // The 'check' build step for the formula
-        if let Some(cmd) = &self.check {
-            res.push(PackageBuildStep {
-                name: "check".to_string(),
-                workdir: formula_mountpoint.to_string_lossy().to_string(),
-
-                command: cmd.clone(),
-
-                env_vars: env_vars.clone(),
-            })
-        }
-
-        // The 'package' build step for the formula
-        if let Some(cmd) = &self.package {
-            res.push(PackageBuildStep {
-                name: "package".to_string(),
-                workdir: formula_mountpoint.to_string_lossy().to_string(),
-
-                command: cmd.clone(),
-
-                env_vars: env_vars.clone(),
-            })
-        }
-
-        Some(res)
-    }
 }
-
-impl NamedPackage for FormulaPackage {
-    fn get_name(&self) -> &str {
-        &self.name
-    }
-}
-
-impl VersionedPackage for FormulaPackage {
-    fn get_version(&self) -> &str {
-        &self.version
-    }
-    fn get_pkgver(&self) -> u32 {
-        self.pkgver
-    }
-}
-
-impl NameVersionPackage for FormulaPackage {}
 
 impl FormulaPackageSource {
     /// Returns the URL of the source with the variables replaced using [crate::util::string::replace_package_variables()]
@@ -204,66 +100,5 @@ impl FormulaPackageSource {
         };
 
         replace_package_variables(&dest, package)
-    }
-}
-
-/// The environment variables for a package build step
-#[derive(Clone)]
-pub struct PackageEnvVars {
-    /// `PKG_NAME`
-    env_pkg_name: String,
-    /// `PKG_VERSION`
-    env_pkg_version: String,
-    /// `PKG_ARCH`
-    env_pkg_arch: String,
-    /// `PKG_INSTALL_DIR`
-    env_pkg_install_dir: String,
-    /// `PKG_ROOT`
-    env_pkg_root: String,
-}
-
-/// A build step for a package
-pub struct PackageBuildStep {
-    /// The name of the build step
-    name: String,
-    /// The working directory
-    workdir: String,
-
-    /// The command to execute
-    command: String,
-
-    /// The environment variables to provide
-    env_vars: PackageEnvVars,
-}
-
-impl EnvironmentExecutable for PackageBuildStep {
-    fn get_env_variables(&self) -> HashMap<String, String> {
-        let mut res = HashMap::new();
-
-        res.insert("PKG_NAME".to_owned(), self.env_vars.env_pkg_name.clone());
-        res.insert(
-            "PKG_VERSION".to_owned(),
-            self.env_vars.env_pkg_version.clone(),
-        );
-        res.insert("PKG_ARCH".to_owned(), self.env_vars.env_pkg_arch.clone());
-        res.insert(
-            "PKG_INSTALL_DIR".to_owned(),
-            self.env_vars.env_pkg_install_dir.clone(),
-        );
-        res.insert("PKG_ROOT".to_owned(), self.env_vars.env_pkg_root.clone());
-
-        res
-    }
-
-    fn get_command(&self) -> std::ffi::OsString {
-        self.command.clone().into()
-    }
-
-    fn get_name(&self) -> String {
-        self.name.clone()
-    }
-
-    fn get_workdir(&self) -> std::ffi::OsString {
-        self.workdir.clone().into()
     }
 }

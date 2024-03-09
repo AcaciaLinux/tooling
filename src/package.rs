@@ -7,26 +7,12 @@ use std::{
 
 use crate::{
     util::fs::{Directory, SearchType},
-    validators::{
-        indexed_package::{validate_indexed_package, FileValidationResult},
-        ValidationInput,
-    },
     PACKAGE_ARCHIVE_FILE_SUFFIX,
 };
 
-mod installed;
-pub use installed::*;
+use self::info::PackageInfo;
 
-mod built;
-pub use built::*;
-
-pub mod index;
-
-mod installable;
-pub use installable::*;
-
-mod info;
-pub use info::*;
+pub mod info;
 
 /// A package that has a name
 pub trait NamedPackage {
@@ -107,12 +93,6 @@ pub trait PathPackage {
     fn get_real_path(&self) -> PathBuf;
 }
 
-/// Something that can provide a build id
-pub trait BuildIDProvider {
-    /// Returns the build id for this object
-    fn get_build_id(&self) -> &str;
-}
-
 /// Something that can provide a list of dependencies
 pub trait DependencyProvider {
     /// Returns all the needed dependencies
@@ -142,17 +122,5 @@ pub trait IndexedPackage: CorePackage + PathPackage {
         self.get_index()
             .find_entry(entry)
             .map(|entry| (entry, self))
-    }
-
-    /// Validates this package by iterating over its index and validating everything
-    /// # Arguments
-    /// * `input` - The validation input
-    /// # Returns
-    /// A vector of file results. If a file has no actions and no errors, it will not be returned
-    fn validate(&self, input: &ValidationInput) -> Vec<FileValidationResult>
-    where
-        Self: Sized,
-    {
-        validate_indexed_package(self, input)
     }
 }

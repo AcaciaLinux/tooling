@@ -10,9 +10,6 @@ builder = ["mount"]
 
 mount = ["dep:sys-mount"]
 
-[[bin]]
-name = "formulagen"
-path = "src/bin/formulagen/formulagen.rs"
 
 [dependencies]
 clap = { version = "4.4.8", features = ["derive"] }

@@ -32,4 +32,3 @@ pub mod files;
 pub mod package;
 pub mod tools;
 pub mod util;
-pub mod validators;

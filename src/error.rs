@@ -5,8 +5,6 @@ use std::collections::LinkedList;
 #[cfg(feature = "builder")]
 use crate::tools::builder::BuilderError;
 
-use crate::validators::ValidationError;
-
 use self::{
     assert::AssertionError,
     dependency::DependencyError,
@@ -27,7 +25,6 @@ pub enum ErrorType {
     TOML(TOMLError),
     #[cfg(feature = "builder")]
     Builder(BuilderError),
-    Validation(ValidationError),
     CURL(CURLError),
     Dependency(DependencyError),
 }
@@ -101,7 +98,6 @@ impl std::fmt::Display for ErrorType {
             Self::TOML(e) => e.fmt(f),
             #[cfg(feature = "builder")]
             Self::Builder(e) => e.fmt(f),
-            Self::Validation(e) => e.fmt(f),
             Self::CURL(e) => e.fmt(f),
             Self::Dependency(e) => e.fmt(f),
         }

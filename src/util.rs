@@ -1,5 +1,6 @@
 //! Various utility functions, structs and traits
 
+pub mod architecture;
 pub mod archive;
 pub mod download;
 pub mod elf;

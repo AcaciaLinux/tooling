@@ -6,7 +6,10 @@ use std::{
 use log::debug;
 use sys_mount::{UnmountDrop, UnmountFlags};
 
-use crate::error::{Error, ErrorExt};
+use crate::{
+    error::{Error, ErrorExt},
+    util,
+};
 
 use super::Mount;
 
@@ -33,20 +36,12 @@ impl OverlayMount {
         upper: PathBuf,
         merged: PathBuf,
     ) -> Result<OverlayMount, Error> {
-        std::fs::create_dir_all(&work)
-            .e_context(|| format!("Creating overlay work directory {}", work.to_string_lossy()))?;
-        std::fs::create_dir_all(&upper).e_context(|| {
-            format!(
-                "Creating overlay upper directory {}",
-                upper.to_string_lossy()
-            )
-        })?;
-        std::fs::create_dir_all(&merged).e_context(|| {
-            format!(
-                "Creating overlay merged directory {}",
-                merged.to_string_lossy()
-            )
-        })?;
+        for d in &lower {
+            util::fs::create_dir_all(d)?;
+        }
+        util::fs::create_dir_all(&work)?;
+        util::fs::create_dir_all(&upper)?;
+        util::fs::create_dir_all(&merged)?;
 
         let mut done: HashMap<PathBuf, ()> = HashMap::new();
         let mut lower_s = String::new();

@@ -1,11 +1,13 @@
 //! The data structures to parse from the formula file, refer to <https://acacialinux.github.io/concept/formula> for more information
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::{
     package::CorePackage,
-    util::{parse::versionstring::VersionString, string::replace_package_variables},
-    ANY_ARCH,
+    util::{
+        architecture::Architecture, parse::versionstring::VersionString,
+        string::replace_package_variables,
+    },
 };
 
 /// The contents of a formula file
@@ -32,7 +34,8 @@ pub struct FormulaPackage {
     #[serde(default = "default_formula_package_strip")]
     pub strip: bool,
 
-    pub arch: Option<Vec<String>>,
+    #[serde(default, deserialize_with = "deserialize_archs")]
+    pub arch: Option<Vec<Architecture>>,
 
     pub prepare: Option<String>,
     pub build: Option<String>,
@@ -40,6 +43,21 @@ pub struct FormulaPackage {
     pub package: Option<String>,
 
     pub sources: Option<Vec<FormulaPackageSource>>,
+}
+
+/// Deserializes a vector of architectures using serde
+fn deserialize_archs<'de, D>(deserializer: D) -> Result<Option<Vec<Architecture>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let archs: Option<Vec<String>> = Option::deserialize(deserializer)?;
+
+    Ok(archs.map(|archs| {
+        archs
+            .into_iter()
+            .map(|a| Architecture::new(a, Vec::new()))
+            .collect()
+    }))
 }
 
 /// A source for a package
@@ -69,11 +87,8 @@ impl FormulaPackage {
     }
 
     /// Returns the architectures this package can be built for
-    pub fn get_architectures(&self) -> Vec<String> {
-        match &self.arch {
-            None => vec![ANY_ARCH.to_string()],
-            Some(s) => s.clone(),
-        }
+    pub fn get_architectures(&self) -> Option<Vec<Architecture>> {
+        self.arch.as_ref().cloned()
     }
 }
 

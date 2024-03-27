@@ -100,7 +100,7 @@ impl FormulaPackageSource {
         replace_package_variables(&self.url, package)
     }
 
-    /// Returns the URL of the source with the variables replaced using [crate::util::string::replace_package_variables()]
+    /// Returns the destination of the source with the variables replaced using [crate::util::string::replace_package_variables()]
     /// # Arguments
     /// * `package` - The package to pull the variables from
     pub fn get_dest(&self, package: &dyn CorePackage) -> String {

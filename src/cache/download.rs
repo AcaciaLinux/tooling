@@ -7,7 +7,7 @@ use std::{
 };
 
 use http::StatusCode;
-use log::{debug, warn};
+use log::{debug, info, warn};
 use rs_sha512::{HasherContext, Sha512Hasher};
 
 use crate::{
@@ -63,6 +63,7 @@ impl DownloadCache {
 
         let cache_path = self.workdir.join(&hash);
         if cache_path.exists() {
+            info!("{}", message);
             debug!("Using cached value {hash}");
 
             match copy(&cache_path, file) {

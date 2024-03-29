@@ -5,12 +5,11 @@ mod buildenv;
 #[cfg(feature = "mount")]
 pub use buildenv::*;
 
+pub mod executable;
+
 use std::{collections::HashMap, ffi::OsString, path::Path};
 
 use crate::{error::Error, util::signal::SignalDispatcher};
-
-mod customexec;
-pub use customexec::*;
 
 /// An environment that can execute `EnvironmentExecutables`
 pub trait Environment {

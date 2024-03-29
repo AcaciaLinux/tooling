@@ -5,7 +5,7 @@ mod buildenv;
 #[cfg(feature = "mount")]
 pub use buildenv::*;
 
-use std::{collections::HashMap, ffi::OsString};
+use std::{collections::HashMap, ffi::OsString, path::Path};
 
 use crate::{error::Error, util::signal::SignalDispatcher};
 
@@ -37,5 +37,5 @@ pub trait EnvironmentExecutable {
     fn get_command(&self) -> OsString;
 
     /// Returns the directory to run the command in
-    fn get_workdir(&self) -> OsString;
+    fn get_workdir(&self) -> &Path;
 }

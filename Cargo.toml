@@ -22,6 +22,7 @@ serde = { version = "1.0.192", features = ["derive"] }
 toml = { version = "0.8.8", features = ["display"] }
 uname = "0.1.1"
 uuid = { version = "1.6.1", features = ["v4"] }
+lazy_static = "1.4.0"
 
 # Feature: mount
 sys-mount = { version = "3.0.1", default-features = false, optional = true }

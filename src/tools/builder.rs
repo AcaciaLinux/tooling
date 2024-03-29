@@ -1,5 +1,8 @@
 use std::process::ExitStatus;
 
+mod workdir;
+pub use workdir::*;
+
 use crate::error::{Error, ErrorExt, ErrorType, Throwable};
 
 pub struct Builder {}

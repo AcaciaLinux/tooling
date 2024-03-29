@@ -1,5 +1,8 @@
 //! This crate provides tooling for the [AcaciaLinux](https://github.com/AcaciaLinux) project
 
+#[macro_use]
+extern crate lazy_static;
+
 use std::path::PathBuf;
 
 /// The architecture string to use for architecture-independent packages

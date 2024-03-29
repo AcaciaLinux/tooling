@@ -23,6 +23,8 @@ pub trait VersionedPackage {
     fn get_version(&self) -> &str;
     /// Returns the `pkgver` of the package
     fn get_pkgver(&self) -> u32;
+    /// Returns the unique package id
+    fn get_id(&self) -> &str;
 }
 
 /// A package that provides only a name and a version
@@ -52,9 +54,34 @@ pub trait CorePackage: NamedPackage + VersionedPackage + NameVersionPackage {
     fn get_info(&self) -> PackageInfo {
         PackageInfo {
             name: self.get_name().to_owned(),
-            version: self.get_version().to_string(),
+            version: self.get_version().to_owned(),
             pkgver: self.get_pkgver(),
+            id: self.get_id().to_owned(),
         }
+    }
+
+    /// Returns the directory this package lives at relative to `dist_dir`
+    /// # Arguments
+    /// * `dist_dir` - The DIST directory
+    fn get_install_dir(&self, dist_dir: &Path) -> PathBuf {
+        dist_dir
+            .join("pkg")
+            .join(format!("{}_{}", self.get_name_version(), self.get_id()))
+    }
+
+    /// Returns the directory that contains the package files relative to `dist_dir`
+    /// # Arguments
+    /// * `dist_dir` - The DIST directory
+    fn get_root_dir(&self, dist_dir: &Path) -> PathBuf {
+        self.get_install_dir(dist_dir).join("root")
+    }
+
+    /// Returns the directory that contains the directory for linking
+    /// to other objects relative to `dist_dir`
+    /// # Arguments
+    /// * `dist_dir` - The DIST directory
+    fn get_link_dir(&self, dist_dir: &Path) -> PathBuf {
+        self.get_install_dir(dist_dir).join("link")
     }
 }
 

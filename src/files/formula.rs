@@ -77,7 +77,7 @@ fn default_formula_package_strip() -> bool {
 
 /// Provides the default value for the `extract` field: `false`
 fn default_formula_package_source_extract() -> bool {
-    true
+    false
 }
 
 impl FormulaPackage {

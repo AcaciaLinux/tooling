@@ -1,6 +1,6 @@
 //! Common error structure used all over the tooling
 
-use std::collections::LinkedList;
+use std::{collections::LinkedList, string::FromUtf8Error};
 
 #[cfg(feature = "builder")]
 use crate::tools::builder::BuilderError;
@@ -27,6 +27,7 @@ pub enum ErrorType {
     Builder(BuilderError),
     CURL(CURLError),
     Dependency(DependencyError),
+    FromUTF8(FromUtf8Error),
 }
 
 /// The error struct, containing the error and a context
@@ -100,6 +101,7 @@ impl std::fmt::Display for ErrorType {
             Self::Builder(e) => e.fmt(f),
             Self::CURL(e) => e.fmt(f),
             Self::Dependency(e) => e.fmt(f),
+            Self::FromUTF8(e) => e.fmt(f),
         }
     }
 }

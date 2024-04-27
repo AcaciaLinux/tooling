@@ -1,4 +1,6 @@
 //! Support code to wrap other errors in `tooling::Error` structs
+use std::string::FromUtf8Error;
+
 use http::StatusCode;
 
 use super::{dependency::DependencyError, AssertionError, Error, ErrorExt, ErrorType, Throwable};
@@ -153,5 +155,20 @@ impl<T> ErrorExt<T> for Result<T, DependencyError> {
 impl Throwable for DependencyError {
     fn throw(self, context: String) -> Error {
         Error::new_context(ErrorType::Dependency(self), context)
+    }
+}
+
+impl<T> ErrorExt<T> for Result<T, FromUtf8Error> {
+    fn e_context<F: Fn() -> String>(self, context: F) -> Result<T, Error> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => Err(Error::new_context(ErrorType::FromUTF8(e), context())),
+        }
+    }
+}
+
+impl Throwable for FromUtf8Error {
+    fn throw(self, context: String) -> Error {
+        Error::new_context(ErrorType::FromUTF8(self), context)
     }
 }

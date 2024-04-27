@@ -1,5 +1,8 @@
 //! Utilities for interacting with a filesystem
 
+mod unix_info;
+pub use unix_info::*;
+
 mod walk;
 pub use walk::*;
 

@@ -44,7 +44,7 @@ pub trait ErrorExt<T> {
     /// Adds context to an error. This function takes a trait, so strings do only get constructed when needed
     /// # Arguments
     /// * `context` - A closure that returns the context message
-    fn e_context<F: Fn() -> String>(self, context: F) -> Result<T, Error>;
+    fn e_context<S: ToString, F: Fn() -> S>(self, context: F) -> Result<T, Error>;
 }
 
 /// A trait for types that can be populated to an `Error`
@@ -119,11 +119,11 @@ impl std::fmt::Display for Error {
 }
 
 impl<T> ErrorExt<T> for Result<T, Error> {
-    fn e_context<F: Fn() -> String>(self, context: F) -> Result<T, Error> {
+    fn e_context<S: ToString, F: Fn() -> S>(self, context: F) -> Result<T, Error> {
         match self {
             Ok(v) => Ok(v),
             Err(mut e) => {
-                e.context.push_front(context());
+                e.context.push_front(context().to_string());
                 Err(e)
             }
         }

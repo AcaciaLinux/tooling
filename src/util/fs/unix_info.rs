@@ -59,7 +59,7 @@ impl Packable for UNIXInfo {
     }
 
     fn unpack<R: Read>(input: &mut R) -> Result<Option<Self::Output>, Error> {
-        let context = || "Unpacking UNIX info".to_string();
+        let context = || "Unpacking UNIX info";
 
         let mut buf = [0u8; 3 * 4];
         input.read_exact(&mut buf).e_context(context)?;

@@ -51,7 +51,7 @@ impl BuildEnvironment {
         root_mount: Box<dyn Mount>,
         toolchain_dir: PathBuf,
     ) -> Result<BuildEnvironment, Error> {
-        let context = || "Creating build environment".to_string();
+        let context = || "Creating build environment";
         let target = root_mount.get_target_path();
 
         // Mount the virtual kernel filesystems

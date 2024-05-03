@@ -5,6 +5,9 @@ extern crate lazy_static;
 
 use std::path::PathBuf;
 
+use base64::engine::GeneralPurpose;
+use base64::prelude::BASE64_URL_SAFE;
+
 /// The architecture string to use for architecture-independent packages
 pub static ANY_ARCH: &str = "any";
 
@@ -13,6 +16,9 @@ pub static DIST_DIR: &str = "acacia";
 
 /// The file type suffix for the package archive file
 pub static PACKAGE_ARCHIVE_FILE_SUFFIX: &str = ".tar.xz";
+
+/// The base64 engine
+pub static BASE64_ENGINE: GeneralPurpose = BASE64_URL_SAFE;
 
 /// Provide a relative `PathBuf` pointing to the `DIST_DIR`
 pub fn dist_dir() -> PathBuf {

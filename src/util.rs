@@ -10,6 +10,7 @@ pub mod elf;
 pub mod fs;
 pub mod hash;
 pub mod parse;
+pub mod serde;
 pub mod signal;
 pub mod string;
 

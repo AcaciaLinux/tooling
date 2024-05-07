@@ -2,6 +2,7 @@ use std::io::{ErrorKind, Read, Write};
 
 use crate::{
     error::{Error, ErrorExt},
+    model::ObjectID,
     util::{fs::UNIXInfo, Packable},
 };
 
@@ -88,7 +89,7 @@ pub enum IndexCommand {
         /// The name of the file
         name: String,
         /// The object ID to use for this file
-        oid: Vec<u8>,
+        oid: ObjectID,
     },
     /// Create a symlink in the current directory named `name` that points to `dest`
     Symlink {
@@ -147,6 +148,7 @@ impl Packable for IndexCommand {
 
                 let mut oid = vec![0u8; oid_len as usize];
                 input.read_exact(&mut oid).e_context(context)?;
+                let oid = ObjectID::new(oid);
                 IndexCommand::File { info, name, oid }
             }
 
@@ -188,7 +190,7 @@ impl Packable for IndexCommand {
                 (name.len() as u32).pack(output).e_context(context)?;
                 (oid.len() as u32).pack(output).e_context(context)?;
                 output.write(name.as_bytes()).e_context(context)?;
-                output.write(oid).e_context(context)?;
+                output.write(oid.bytes()).e_context(context)?;
             }
 
             Self::Symlink { info, name, dest } => {

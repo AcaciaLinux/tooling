@@ -38,6 +38,7 @@ pub mod cache;
 pub mod env;
 pub mod error;
 pub mod files;
+pub mod model;
 pub mod package;
 pub mod tools;
 pub mod util;

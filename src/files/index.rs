@@ -9,6 +9,9 @@ use crate::{
     util::{fs::IndexCommand, Packable},
 };
 
+/// The current version of the index file
+pub static CURRENT_VERSION: u8 = 0;
+
 /// The representing structure for the index file
 #[derive(Debug)]
 pub struct IndexFile {
@@ -37,10 +40,13 @@ impl Packable for IndexFile {
         let mut buf = [0u8];
 
         input.read_exact(&mut buf).e_context(context)?;
-        if buf[0] != 0 {
+        if buf[0] != CURRENT_VERSION {
             Err(std::io::Error::new(
                 ErrorKind::InvalidInput,
-                format!("Expected version to be 0, got {:x}", buf[0]),
+                format!(
+                    "Expected version to be {:x}, got {:x}",
+                    CURRENT_VERSION, buf[0]
+                ),
             ))
             .e_context(context)?;
         }
@@ -67,7 +73,7 @@ impl Packable for IndexFile {
         let context = || "Writing index file";
 
         out.write(b"AIDX").e_context(context)?;
-        out.write(&[0]).e_context(context)?;
+        out.write(&[CURRENT_VERSION]).e_context(context)?;
 
         for command in &self.commands {
             command.pack(out)?;

@@ -15,6 +15,9 @@ pub use unwind_symlinks::*;
 mod fsentry;
 pub use fsentry::*;
 
+mod pathutil;
+pub use pathutil::*;
+
 use crate::error::{Error, ErrorExt};
 use log::trace;
 use std::{fs::File, path::Path};

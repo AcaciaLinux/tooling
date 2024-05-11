@@ -10,7 +10,7 @@ use tooling::{
     tools::indexer::Indexer,
     util::{
         fs::{self, PathUtil},
-        Packable,
+        Packable, Unpackable,
     },
 };
 

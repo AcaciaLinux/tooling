@@ -1,12 +1,25 @@
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use sha2::{digest::Output, Sha256};
 
+use crate::{
+    error::ErrorExt,
+    util::{Packable, Unpackable},
+};
+
 /// Represents an object id (hash)
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct ObjectID {
     hash: Vec<u8>,
+}
+
+impl Debug for ObjectID {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ObjectID")
+            .field("hash", &self.to_string())
+            .finish()
+    }
 }
 
 impl ObjectID {
@@ -76,5 +89,32 @@ impl<'de> Deserialize<'de> for ObjectID {
 
         Self::new_from_hex(&hash)
             .map_err(|err| de::Error::custom(format!("hex decoding error: {}", err)))
+    }
+}
+
+impl Packable for ObjectID {
+    fn pack<W: std::io::prelude::Write>(&self, output: &mut W) -> Result<(), crate::error::Error> {
+        output
+            .write(self.bytes())
+            .e_context(|| format!("Packing object id {}", self))?;
+        Ok(())
+    }
+}
+
+impl Unpackable for ObjectID {
+    fn unpack<R: std::io::prelude::Read>(
+        input: &mut R,
+    ) -> Result<Option<Self>, crate::error::Error> {
+        let mut buf = [0u8; 32];
+
+        let len = input.read(&mut buf).e_context(|| "Unpacking Object ID")?;
+
+        if len < buf.len() {
+            Ok(None)
+        } else {
+            Ok(Some(Self {
+                hash: Vec::from(buf),
+            }))
+        }
     }
 }

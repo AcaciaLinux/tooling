@@ -19,25 +19,29 @@ pub mod mount;
 
 /// A trait for binary packable structures
 pub trait Packable {
-    /// Should always be set to `Self`
-    type Output;
-
     /// Packs `self` into a binary stream
     /// # Arguments
     /// * `output` - The stream to write to
     fn pack<W: Write>(&self, output: &mut W) -> Result<(), Error>;
+}
 
+pub trait Unpackable {
     /// Unpacks `Self` from a binary stream
     /// # Arguments
     /// * `input` - The stream to read from
     /// # Returns
     /// `None` if the file stream ended before everything has been parsed
-    fn unpack<R: Read>(input: &mut R) -> Result<Option<Self::Output>, Error>;
+    fn unpack<R: Read>(input: &mut R) -> Result<Option<Self>, Error>
+    where
+        Self: Sized;
 
     /// Tries to unpack `Self` from a binary stream, throwing an error on EOF
     /// # Arguments
     /// * `input` - The stream to read from
-    fn try_unpack<R: Read>(input: &mut R) -> Result<Self::Output, Error> {
+    fn try_unpack<R: Read>(input: &mut R) -> Result<Self, Error>
+    where
+        Self: Sized,
+    {
         let x = Self::unpack(input)?;
         match x {
             Some(x) => Ok(x),

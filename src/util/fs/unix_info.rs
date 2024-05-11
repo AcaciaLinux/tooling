@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     error::{Error, ErrorExt},
-    util::Packable,
+    util::{Packable, Unpackable},
 };
 
 /// A structure to wrap UNIX file attributes
@@ -46,8 +46,6 @@ impl UNIXInfo {
 }
 
 impl Packable for UNIXInfo {
-    type Output = Self;
-
     fn pack<W: Write>(&self, output: &mut W) -> Result<(), Error> {
         let context = || format!("Packing UNIX info {:?}", self);
 
@@ -57,8 +55,10 @@ impl Packable for UNIXInfo {
 
         Ok(())
     }
+}
 
-    fn unpack<R: Read>(input: &mut R) -> Result<Option<Self::Output>, Error> {
+impl Unpackable for UNIXInfo {
+    fn unpack<R: Read>(input: &mut R) -> Result<Option<Self>, Error> {
         let context = || "Unpacking UNIX info";
 
         let mut buf = [0u8; 3 * 4];

@@ -3,14 +3,12 @@ use std::io::{ErrorKind, Read, Write};
 use crate::{
     error::{Error, ErrorExt},
     model::ObjectID,
-    util::{fs::UNIXInfo, Packable},
+    util::{fs::UNIXInfo, Packable, Unpackable},
 };
 
 use super::IndexCommandType;
 
 impl Packable for u8 {
-    type Output = Self;
-
     fn pack<W: Write>(&self, output: &mut W) -> Result<(), Error> {
         output
             .write(&[*self])
@@ -18,8 +16,10 @@ impl Packable for u8 {
 
         Ok(())
     }
+}
 
-    fn unpack<R: Read>(input: &mut R) -> Result<Option<Self::Output>, Error> {
+impl Unpackable for u8 {
+    fn unpack<R: Read>(input: &mut R) -> Result<Option<Self>, Error> {
         let mut buf = [0u8; 1];
         let x = input.read(&mut buf).e_context(|| "Read u8".to_owned())?;
         Ok(match x {
@@ -30,8 +30,6 @@ impl Packable for u8 {
 }
 
 impl Packable for u16 {
-    type Output = Self;
-
     fn pack<W: Write>(&self, output: &mut W) -> Result<(), Error> {
         output
             .write(&self.to_le_bytes())
@@ -39,8 +37,10 @@ impl Packable for u16 {
 
         Ok(())
     }
+}
 
-    fn unpack<R: Read>(input: &mut R) -> Result<Option<Self::Output>, Error> {
+impl Unpackable for u16 {
+    fn unpack<R: Read>(input: &mut R) -> Result<Option<Self>, Error> {
         let mut buf = [0u8; 2];
         let x = input.read(&mut buf).e_context(|| "Read u16".to_owned())?;
         Ok(match x {
@@ -51,8 +51,6 @@ impl Packable for u16 {
 }
 
 impl Packable for u32 {
-    type Output = Self;
-
     fn pack<W: Write>(&self, output: &mut W) -> Result<(), Error> {
         output
             .write(&self.to_le_bytes())
@@ -60,8 +58,10 @@ impl Packable for u32 {
 
         Ok(())
     }
+}
 
-    fn unpack<R: Read>(input: &mut R) -> Result<Option<Self::Output>, Error> {
+impl Unpackable for u32 {
+    fn unpack<R: Read>(input: &mut R) -> Result<Option<Self>, Error> {
         let mut buf = [0u8; 4];
         let x = input.read(&mut buf).e_context(|| "Read u32".to_owned())?;
         Ok(match x {
@@ -102,8 +102,43 @@ pub enum IndexCommand {
 }
 
 impl Packable for IndexCommand {
-    type Output = Self;
+    fn pack<W: Write>(&self, output: &mut W) -> Result<(), Error> {
+        let context = || format!("Writing index command {:?}", self);
 
+        let ty = IndexCommandType::from_command(self);
+        output.write(&[ty as u8]).e_context(context)?;
+
+        match self {
+            Self::DirectoryUP => {}
+
+            Self::Directory { info, name } => {
+                info.pack(output).e_context(context)?;
+                (name.len() as u32).pack(output).e_context(context)?;
+                output.write(name.as_bytes()).e_context(context)?;
+            }
+
+            Self::File { info, name, oid } => {
+                info.pack(output).e_context(context)?;
+                (name.len() as u32).pack(output).e_context(context)?;
+                (oid.len() as u32).pack(output).e_context(context)?;
+                output.write(name.as_bytes()).e_context(context)?;
+                output.write(oid.bytes()).e_context(context)?;
+            }
+
+            Self::Symlink { info, name, dest } => {
+                info.pack(output).e_context(context)?;
+                (name.len() as u32).pack(output).e_context(context)?;
+                (dest.len() as u32).pack(output).e_context(context)?;
+                output.write(name.as_bytes()).e_context(context)?;
+                output.write(dest.as_bytes()).e_context(context)?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl Unpackable for IndexCommand {
     fn unpack<R: Read>(input: &mut R) -> Result<Option<Self>, Error> {
         let context = || "Reading index command type";
         let ty = match u8::unpack(input).e_context(context)? {
@@ -168,40 +203,5 @@ impl Packable for IndexCommand {
                 IndexCommand::Symlink { info, name, dest }
             }
         }))
-    }
-
-    fn pack<W: Write>(&self, output: &mut W) -> Result<(), Error> {
-        let context = || format!("Writing index command {:?}", self);
-
-        let ty = IndexCommandType::from_command(self);
-        output.write(&[ty as u8]).e_context(context)?;
-
-        match self {
-            Self::DirectoryUP => {}
-
-            Self::Directory { info, name } => {
-                info.pack(output).e_context(context)?;
-                (name.len() as u32).pack(output).e_context(context)?;
-                output.write(name.as_bytes()).e_context(context)?;
-            }
-
-            Self::File { info, name, oid } => {
-                info.pack(output).e_context(context)?;
-                (name.len() as u32).pack(output).e_context(context)?;
-                (oid.len() as u32).pack(output).e_context(context)?;
-                output.write(name.as_bytes()).e_context(context)?;
-                output.write(oid.bytes()).e_context(context)?;
-            }
-
-            Self::Symlink { info, name, dest } => {
-                info.pack(output).e_context(context)?;
-                (name.len() as u32).pack(output).e_context(context)?;
-                (dest.len() as u32).pack(output).e_context(context)?;
-                output.write(name.as_bytes()).e_context(context)?;
-                output.write(dest.as_bytes()).e_context(context)?;
-            }
-        }
-
-        Ok(())
     }
 }

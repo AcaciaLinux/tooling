@@ -6,7 +6,7 @@ use log::debug;
 
 use crate::{
     error::{Error, ErrorExt},
-    util::{fs::IndexCommand, Packable},
+    util::{fs::IndexCommand, Packable, Unpackable},
 };
 
 /// The current version of the index file
@@ -22,8 +22,22 @@ pub struct IndexFile {
 }
 
 impl Packable for IndexFile {
-    type Output = Self;
-    fn unpack<R: Read>(input: &mut R) -> Result<Option<IndexFile>, Error> {
+    fn pack<W: Write>(&self, out: &mut W) -> Result<(), Error> {
+        let context = || "Writing index file";
+
+        out.write(b"AIDX").e_context(context)?;
+        out.write(&[CURRENT_VERSION]).e_context(context)?;
+
+        for command in &self.commands {
+            command.pack(out)?;
+        }
+
+        Ok(())
+    }
+}
+
+impl Unpackable for IndexFile {
+    fn unpack<R: Read>(input: &mut R) -> Result<Option<Self>, Error> {
         let context = || "Parsing index command";
 
         let mut buf = [0u8; 4];
@@ -67,18 +81,5 @@ impl Packable for IndexFile {
             version: 1,
             commands,
         }))
-    }
-
-    fn pack<W: Write>(&self, out: &mut W) -> Result<(), Error> {
-        let context = || "Writing index file";
-
-        out.write(b"AIDX").e_context(context)?;
-        out.write(&[CURRENT_VERSION]).e_context(context)?;
-
-        for command in &self.commands {
-            command.pack(out)?;
-        }
-
-        Ok(())
     }
 }

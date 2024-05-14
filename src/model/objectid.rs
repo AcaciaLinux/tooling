@@ -64,8 +64,8 @@ impl ObjectID {
     /// Constructs a path for this object id and a depth:
     ///
     /// - `abcdef` => `abcdef` (depth = 1)
-    /// - `abcdef` => `ab/cdef` (depth = 2)
-    /// - `abcdef` => `ab/cd/ef` (depth = 3)
+    /// - `abcdef` => `ab/abcdef` (depth = 2)
+    /// - `abcdef` => `ab/cd/abcdef` (depth = 3)
     /// # Arguments
     /// * `depth` - The depth to split the hash into
     pub fn to_path(&self, depth: usize) -> PathBuf {
@@ -80,7 +80,7 @@ impl ObjectID {
             oid = split.1;
         }
 
-        path.join(oid)
+        path.join(oid_string)
     }
 }
 

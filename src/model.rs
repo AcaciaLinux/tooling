@@ -15,5 +15,8 @@ pub use objecttype::*;
 mod objectid;
 pub use objectid::*;
 
+mod objectdb;
+pub use objectdb::*;
+
 mod home;
 pub use home::*;

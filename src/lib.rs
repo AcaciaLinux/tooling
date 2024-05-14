@@ -20,6 +20,9 @@ pub static HOME_DIR: &str = ".acacia";
 /// The file type suffix for the package archive file
 pub static PACKAGE_ARCHIVE_FILE_SUFFIX: &str = ".tar.xz";
 
+/// The file type suffix for an object file
+pub static OBJECT_FILE_EXTENSION: &str = "aobj";
+
 /// The base64 engine
 pub static BASE64_ENGINE: GeneralPurpose = BASE64_URL_SAFE;
 

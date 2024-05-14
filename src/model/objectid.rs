@@ -1,4 +1,7 @@
-use std::fmt::{Debug, Display};
+use std::{
+    fmt::{Debug, Display},
+    path::PathBuf,
+};
 
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use sha2::{digest::Output, Sha256};
@@ -56,6 +59,28 @@ impl ObjectID {
     /// Returns a byte slice of this object id
     pub fn bytes(&self) -> &[u8] {
         &self.hash
+    }
+
+    /// Constructs a path for this object id and a depth:
+    ///
+    /// - `abcdef` => `abcdef` (depth = 1)
+    /// - `abcdef` => `ab/cdef` (depth = 2)
+    /// - `abcdef` => `ab/cd/ef` (depth = 3)
+    /// # Arguments
+    /// * `depth` - The depth to split the hash into
+    pub fn to_path(&self, depth: usize) -> PathBuf {
+        let oid_string = self.to_hex_str();
+
+        let mut path = PathBuf::new();
+        let mut oid = oid_string.as_str();
+
+        for _ in 1..depth {
+            let split = oid.split_at(2);
+            path.push(split.0);
+            oid = split.1;
+        }
+
+        path.join(oid)
     }
 }
 

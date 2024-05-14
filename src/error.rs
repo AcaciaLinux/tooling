@@ -28,6 +28,7 @@ pub enum ErrorType {
     CURL(CURLError),
     Dependency(DependencyError),
     FromUTF8(FromUtf8Error),
+    Other(String),
 }
 
 /// The error struct, containing the error and a context
@@ -102,6 +103,7 @@ impl std::fmt::Display for ErrorType {
             Self::CURL(e) => e.fmt(f),
             Self::Dependency(e) => e.fmt(f),
             Self::FromUTF8(e) => e.fmt(f),
+            Self::Other(e) => write!(f, "{}", e),
         }
     }
 }

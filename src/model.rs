@@ -3,6 +3,9 @@
 mod objectcompression;
 pub use objectcompression::*;
 
+mod objectdependency;
+pub use objectdependency::*;
+
 mod objecttype;
 pub use objecttype::*;
 

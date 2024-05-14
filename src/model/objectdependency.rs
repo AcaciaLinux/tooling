@@ -1,7 +1,10 @@
-use std::path::PathBuf;
+use std::{
+    io::{Read, Seek},
+    path::PathBuf,
+};
 
 use crate::{
-    error::ErrorExt,
+    error::{Error, ErrorExt},
     util::{fs::PathUtil, Packable, Unpackable},
 };
 
@@ -15,6 +18,17 @@ pub struct ObjectDependency {
     /// The path relative from to the depending object
     /// it expects the dependency to exist at
     pub path: PathBuf,
+}
+
+impl ObjectDependency {
+    /// Infer object dependencies from a seekable stream
+    /// # Arguments
+    /// * `input` - The input stream to infer from
+    ///
+    /// This will seek `input` and leave it in a possibly random position
+    pub fn infer<R: Read + Seek>(_input: &mut R) -> Result<Vec<ObjectDependency>, Error> {
+        Ok(Vec::new())
+    }
 }
 
 impl Packable for ObjectDependency {

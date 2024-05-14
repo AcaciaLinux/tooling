@@ -1,5 +1,7 @@
+use std::io::{Read, Seek};
+
 use crate::{
-    error::ErrorExt,
+    error::{Error, ErrorExt},
     util::{Packable, Unpackable},
 };
 
@@ -9,6 +11,17 @@ use crate::{
 pub enum ObjectType {
     /// Any other object
     Other = 0,
+}
+
+impl ObjectType {
+    /// Infers the object type from the supplied seekable stream
+    /// # Arguments
+    /// * `path` - The path to the file to infer the object type of
+    ///
+    /// This will seek `input` and leave it in a possibly random position
+    pub fn infer<R: Read + Seek>(_input: &mut R) -> Result<Self, Error> {
+        Ok(Self::Other)
+    }
 }
 
 impl Packable for ObjectType {

@@ -4,9 +4,9 @@ extern crate colored;
 use clap::Parser;
 use colored::Colorize;
 use tooling::{
-    error::{Error, ErrorExt},
+    error::{Error, ErrorExt, ErrorType},
     files::index::IndexFile,
-    model::ObjectID,
+    model::{Home, ObjectDB, ObjectID},
     tools::indexer::Indexer,
     util::{
         fs::{self, PathUtil},
@@ -49,6 +49,10 @@ struct Cli {
     #[arg(long = "loglevel", short = 'v', default_value_t = 0, global = true)]
     pub loglevel: u8,
 
+    /// The home directory where all Acacia tooling works in [~/.acacia]
+    #[arg(long)]
+    home: Option<PathBuf>,
+
     /// The command to execute
     #[command(subcommand)]
     command: Command,
@@ -74,6 +78,18 @@ fn run() -> Result<(), Error> {
         }
     }
     pretty_env_logger::init();
+
+    let home = match cli.home {
+        Some(root) => Home::new(root),
+        None => match home::home_dir() {
+            Some(home_dir) => Home::new(home_dir.join(tooling::HOME_DIR)),
+            None => {
+                return Err(Error::new(ErrorType::Other(
+                    "Home cannot be determined, use '--home'".to_owned(),
+                )))
+            }
+        },
+    }?;
 
     match cli.command {
         Command::Stat(cli) => command_stat(cli)?,

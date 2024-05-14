@@ -14,6 +14,9 @@ pub static ANY_ARCH: &str = "any";
 /// The DIST directory. Default is `acacia`. This **HAS** to be relative to be able to join onto other paths
 pub static DIST_DIR: &str = "acacia";
 
+/// The HOME directory. Default is `~/.acacia`
+pub static HOME_DIR: &str = ".acacia";
+
 /// The file type suffix for the package archive file
 pub static PACKAGE_ARCHIVE_FILE_SUFFIX: &str = ".tar.xz";
 

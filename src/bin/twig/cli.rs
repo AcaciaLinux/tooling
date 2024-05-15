@@ -7,6 +7,7 @@ use tooling::{
 };
 
 pub mod common;
+mod index;
 mod odb;
 
 #[derive(Parser)]
@@ -28,6 +29,8 @@ pub struct Cli {
 pub enum TwigCommand {
     /// Perform operations on or with the object database
     Odb(odb::CommandOdb),
+    /// Work with or create index files
+    Index(index::CommandIndex),
 }
 
 impl Cli {
@@ -67,6 +70,7 @@ impl TwigCommand {
     pub fn run(&self, cli: &Cli) -> Result<i32, Error> {
         match self {
             Self::Odb(cmd) => cmd.run(cli),
+            Self::Index(cmd) => cmd.run(cli),
         }
     }
 }

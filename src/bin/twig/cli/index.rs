@@ -8,7 +8,7 @@ use tooling::{
     tools::indexer::Indexer,
     util::{
         fs::{self, PathUtil},
-        Packable,
+        Packable, Unpackable,
     },
 };
 
@@ -23,6 +23,11 @@ pub struct CommandIndex {
 
 #[derive(Parser)]
 enum Command {
+    /// Provide statistics about an index file
+    Stat {
+        /// The path to the index file
+        path: PathBuf,
+    },
     /// Create a new index by indexing a filesystem tree
     Create {
         /// The output file
@@ -55,6 +60,14 @@ impl CommandIndex {
 impl Command {
     fn run(&self, cli: &Cli) -> Result<i32, Error> {
         match self {
+            Command::Stat { path } => {
+                let mut file_src = fs::file_open(path).e_context(|| "Opening file")?;
+                let file = IndexFile::unpack(&mut file_src).e_context(|| "Unpacking file data")?;
+
+                if let Some(file) = file {
+                    print_stat(file);
+                }
+            }
             Command::Create {
                 output,
                 compression,
@@ -87,6 +100,7 @@ impl Command {
                 }
             }
         }
+
         Ok(0)
     }
 }

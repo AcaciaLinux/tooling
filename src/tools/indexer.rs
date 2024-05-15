@@ -1,7 +1,5 @@
 //! The indexer tool facilitates indexing directories and creating an object database from it
 
-use log::trace;
-
 mod index;
 pub use index::*;
 
@@ -9,11 +7,8 @@ use std::{collections::HashSet, path::PathBuf};
 
 use crate::{
     error::Error,
-    model::ObjectID,
-    util::{
-        fs::{self, IndexCommand},
-        hash::hash_file,
-    },
+    model::{ObjectCompression, ObjectDB, ObjectID},
+    util::fs::{self, IndexCommand},
 };
 
 /// The index tool can index and hash filesystem trees
@@ -36,7 +31,14 @@ impl Indexer {
     /// Runs the indexing operation, walking `root` and producing an [Index]
     /// # Arguments
     /// * `recursive` - Walk the filesystem tree recursively
-    pub fn run(&self, recursive: bool) -> Result<Index, Error> {
+    /// * `db` - The object database to put the indexed objects into
+    /// * `compression` - The compression to use for insertion
+    pub fn run(
+        &self,
+        recursive: bool,
+        db: &mut ObjectDB,
+        compression: ObjectCompression,
+    ) -> Result<Index, Error> {
         let mut index = Vec::new();
         let mut objects: HashSet<ObjectID> = HashSet::new();
 
@@ -54,9 +56,9 @@ impl Indexer {
                     ref mut oid,
                 } => {
                     path.push(name);
-                    *oid = ObjectID::from(hash_file(&path)?);
+                    let object = db.insert_file(&path, compression)?;
+                    *oid = object.oid;
                     objects.insert(oid.clone());
-                    trace!("{} {}", oid.to_hex_str(), path.to_string_lossy());
                     path.pop();
                 }
                 IndexCommand::Symlink {

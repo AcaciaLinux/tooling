@@ -3,11 +3,11 @@ use std::{io, path::PathBuf};
 use clap::Parser;
 use tooling::{
     error::{Error, ErrorExt, ErrorType},
-    model::{ObjectCompression, ObjectDB, ObjectID},
+    model::{ObjectDB, ObjectID},
     util::fs::{file_create, PathUtil},
 };
 
-use super::Cli;
+use super::{common::Compression, Cli};
 
 #[derive(Parser)]
 pub struct CommandOdb {
@@ -29,6 +29,14 @@ enum Command {
     },
     /// Put a new object into the object database
     Put {
+        /// The compression method to use
+        #[arg(long, short, default_value_t = Compression::None)]
+        compression: Compression,
+
+        /// Insert new objects even if they already exist
+        #[arg(long, short, default_value = "false")]
+        force: bool,
+
         /// The path to the file to put into the object database
         path: PathBuf,
     },
@@ -69,9 +77,13 @@ impl Command {
                 }
                 .e_context(|| "Copying object data")?;
             }
-            Command::Put { path } => {
+            Command::Put {
+                compression,
+                force,
+                path,
+            } => {
                 let object = odb
-                    .insert_file(path, ObjectCompression::None)
+                    .insert_file(path, compression.clone().into(), !force)
                     .e_context(|| format!("Putting {} into object database", path.str_lossy()))?;
                 println!("{}", object.oid);
             }

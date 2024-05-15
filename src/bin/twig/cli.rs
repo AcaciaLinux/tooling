@@ -6,6 +6,7 @@ use tooling::{
     model::Home,
 };
 
+pub mod common;
 mod odb;
 
 #[derive(Parser)]

@@ -1,5 +1,6 @@
 use std::{
-    io::{self, Seek, SeekFrom},
+    fs::File,
+    io::{self, Read, Seek, SeekFrom},
     path::{Path, PathBuf},
 };
 
@@ -9,14 +10,14 @@ use crate::{
     error::{Error, ErrorExt},
     model::ObjectType,
     util::{
-        fs::{self, PathUtil},
+        fs::{self, file_open, PathUtil},
         hash::hash_stream,
         Packable, Unpackable,
     },
     OBJECT_FILE_EXTENSION,
 };
 
-use super::{Object, ObjectCompression, ObjectDependency, ObjectID};
+use super::{Object, ObjectCompression, ObjectDependency, ObjectID, ObjectReader};
 
 /// A database for storing AcaciaLinux objects
 pub struct ObjectDB {
@@ -55,7 +56,7 @@ impl ObjectDB {
     /// Inserts a file into the database
     /// # Arguments
     /// * `path` - The path to the file to insert
-    /// * `compression` - The compression level to use for storing the object
+    /// * `compression` - The compression to apply to the data
     /// # Returns
     /// The inserted [Object](super::Object)
     ///
@@ -67,7 +68,29 @@ impl ObjectDB {
     ) -> Result<Object, Error> {
         let mut src_file = fs::file_open(path)?;
 
-        let oid = ObjectID::from(hash_stream(&mut src_file).e_context(|| "Hashing source file")?);
+        self.insert_stream(&mut src_file, compression)
+    }
+
+    /// Insert a new object into the database by reading from a stream
+    /// # Arguments
+    /// * `input` - The input stream to insert
+    /// * `compression` - The compression to apply to the data
+    /// # Returns
+    /// The inserted [Object](super::Object)
+    ///
+    /// This will hash the file, analyze its type and dependencies and copy it into the database
+    ///
+    /// This will seek the stream and leave it at an undefined position!
+    pub fn insert_stream<R: Read + Seek>(
+        &mut self,
+        input: &mut R,
+        compression: ObjectCompression,
+    ) -> Result<Object, Error> {
+        input
+            .seek(SeekFrom::Start(0))
+            .e_context(|| "Seeking to start of stream")?;
+
+        let oid = ObjectID::from(hash_stream(input).e_context(|| "Hashing source stream")?);
         let mut db_path = self.root.join(oid.to_path(self.depth));
         db_path.set_extension(OBJECT_FILE_EXTENSION);
 
@@ -85,9 +108,9 @@ impl ObjectDB {
         let mut dst_file = fs::file_create(&db_path).e_context(|| "Creating object file")?;
 
         let dependencies =
-            ObjectDependency::infer(&mut src_file).e_context(|| "Analyzing object dependencies")?;
+            ObjectDependency::infer(input).e_context(|| "Analyzing object dependencies")?;
 
-        let ty = ObjectType::infer(&mut src_file).e_context(|| "Inferring object type")?;
+        let ty = ObjectType::infer(input).e_context(|| "Inferring object type")?;
 
         match compression {
             ObjectCompression::None => {}
@@ -104,14 +127,36 @@ impl ObjectDB {
             .pack(&mut dst_file)
             .e_context(|| "Packing object data")?;
 
-        src_file
+        input
             .seek(SeekFrom::Start(0))
             .e_context(|| "Seeking to start of source file")?;
 
-        io::copy(&mut src_file, &mut dst_file).e_context(|| "Copying object contents")?;
+        io::copy(input, &mut dst_file).e_context(|| "Copying object contents")?;
 
         debug!("Inserted object {}", object.oid);
 
         Ok(object)
+    }
+
+    /// Read an object from the database
+    /// # Arguments
+    /// * `oid` - The object id of the object to read
+    /// # Returns
+    /// `None` if the object does not exist, else an [ObjectReader](super::ObjectReader)
+    pub fn read(&self, oid: ObjectID) -> Result<Option<ObjectReader<File>>, Error> {
+        let mut path = self.root.join(oid.to_path(self.depth));
+        path.set_extension(OBJECT_FILE_EXTENSION);
+
+        if !path.exists() {
+            return Ok(None);
+        }
+
+        let file =
+            file_open(&path).e_context(|| format!("Opening object file @ {}", path.str_lossy()))?;
+
+        let reader = ObjectReader::from_stream(file)
+            .e_context(|| format!("Creating object reader for {oid}"))?;
+
+        Ok(Some(reader))
     }
 }

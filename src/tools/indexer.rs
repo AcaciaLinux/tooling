@@ -33,11 +33,13 @@ impl Indexer {
     /// * `recursive` - Walk the filesystem tree recursively
     /// * `db` - The object database to put the indexed objects into
     /// * `compression` - The compression to use for insertion
+    /// * `skip_duplicates` - Whether to skip already existing entries
     pub fn run(
         &self,
         recursive: bool,
         db: &mut ObjectDB,
         compression: ObjectCompression,
+        skip_duplicates: bool,
     ) -> Result<Index, Error> {
         let mut index = Vec::new();
         let mut objects: HashSet<ObjectID> = HashSet::new();
@@ -56,7 +58,7 @@ impl Indexer {
                     ref mut oid,
                 } => {
                     path.push(name);
-                    let object = db.insert_file(&path, compression)?;
+                    let object = db.insert_file(&path, compression, skip_duplicates)?;
                     *oid = object.oid;
                     objects.insert(oid.clone());
                     path.pop();

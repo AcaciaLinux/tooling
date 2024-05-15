@@ -5,10 +5,11 @@ use crate::{
 
 /// The supported forms of compression applied to objects
 #[repr(u16)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ObjectCompression {
     /// No compression
     None = 0,
+    Xz = 1,
 }
 
 impl ObjectCompression {
@@ -35,6 +36,7 @@ impl Unpackable for ObjectCompression {
         let input = u16::try_unpack(input).e_context(|| "Unpacking ObjectCompression")?;
         Ok(match input {
             0 => Some(Self::None),
+            1 => Some(Self::Xz),
             _ => None,
         })
     }

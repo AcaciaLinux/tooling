@@ -1,6 +1,5 @@
 use std::{
-    fs::File,
-    io::{self, Read, Seek, SeekFrom},
+    io::{self, Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
 };
 
@@ -57,6 +56,7 @@ impl ObjectDB {
     /// # Arguments
     /// * `path` - The path to the file to insert
     /// * `compression` - The compression to apply to the data
+    /// * `skip_duplicate` - Whether to skip an already existing entry
     /// # Returns
     /// The inserted [Object](super::Object)
     ///
@@ -65,16 +65,18 @@ impl ObjectDB {
         &mut self,
         path: &Path,
         compression: ObjectCompression,
+        skip_duplicate: bool,
     ) -> Result<Object, Error> {
         let mut src_file = fs::file_open(path)?;
 
-        self.insert_stream(&mut src_file, compression)
+        self.insert_stream(&mut src_file, compression, skip_duplicate)
     }
 
     /// Insert a new object into the database by reading from a stream
     /// # Arguments
     /// * `input` - The input stream to insert
     /// * `compression` - The compression to apply to the data
+    /// * `skip_duplicate` - Whether to skip an already existing entry
     /// # Returns
     /// The inserted [Object](super::Object)
     ///
@@ -85,6 +87,7 @@ impl ObjectDB {
         &mut self,
         input: &mut R,
         compression: ObjectCompression,
+        skip_duplicate: bool,
     ) -> Result<Object, Error> {
         input
             .seek(SeekFrom::Start(0))
@@ -95,9 +98,16 @@ impl ObjectDB {
         db_path.set_extension(OBJECT_FILE_EXTENSION);
 
         if db_path.exists() {
-            trace!("Skipping insertion of existing object {}", oid);
-            let mut object_file = fs::file_open(&db_path).e_context(|| "Opening object file")?;
-            return Object::try_unpack(&mut object_file).e_context(|| "Unpacking object file");
+            let mut object_file =
+                fs::file_open(&db_path).e_context(|| "Opening existing object file")?;
+
+            let object = Object::try_unpack(&mut object_file)
+                .e_context(|| "Unpacking existing object file")?;
+
+            if skip_duplicate && object.oid == oid && object.compression == compression {
+                trace!("Skipping insertion of existing object {}", oid);
+                return Ok(object);
+            }
         }
 
         if let Some(p) = db_path.parent() {
@@ -111,10 +121,6 @@ impl ObjectDB {
             ObjectDependency::infer(input).e_context(|| "Analyzing object dependencies")?;
 
         let ty = ObjectType::infer(input).e_context(|| "Inferring object type")?;
-
-        match compression {
-            ObjectCompression::None => {}
-        };
 
         let object = Object {
             oid,
@@ -131,7 +137,19 @@ impl ObjectDB {
             .seek(SeekFrom::Start(0))
             .e_context(|| "Seeking to start of source file")?;
 
-        io::copy(input, &mut dst_file).e_context(|| "Copying object contents")?;
+        let mut output: Box<dyn Write> = match compression {
+            ObjectCompression::None => Box::new(dst_file),
+            ObjectCompression::Xz => {
+                debug!("Using XZ compression");
+
+                let stream = xz::stream::Stream::new_easy_encoder(6, xz::stream::Check::None)
+                    .e_context(|| "Creating xz stream")?;
+
+                Box::new(xz::write::XzEncoder::new_stream(dst_file, stream))
+            }
+        };
+
+        io::copy(input, &mut output).e_context(|| "Copying object contents")?;
 
         debug!("Inserted object {}", object.oid);
 
@@ -143,7 +161,7 @@ impl ObjectDB {
     /// * `oid` - The object id of the object to read
     /// # Returns
     /// `None` if the object does not exist, else an [ObjectReader](super::ObjectReader)
-    pub fn read(&self, oid: ObjectID) -> Result<Option<ObjectReader<File>>, Error> {
+    pub fn read(&self, oid: ObjectID) -> Result<Option<ObjectReader>, Error> {
         let mut path = self.root.join(oid.to_path(self.depth));
         path.set_extension(OBJECT_FILE_EXTENSION);
 

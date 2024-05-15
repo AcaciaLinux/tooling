@@ -184,3 +184,21 @@ impl Throwable for FromUtf8Error {
         Error::new_context(ErrorType::FromUTF8(self), context)
     }
 }
+
+impl<T> ErrorExt<T> for Result<T, xz::stream::Error> {
+    fn e_context<S: ToString, F: Fn() -> S>(self, context: F) -> Result<T, Error> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => Err(Error::new_context(
+                ErrorType::XzStream(e),
+                context().to_string(),
+            )),
+        }
+    }
+}
+
+impl Throwable for xz::stream::Error {
+    fn throw(self, context: String) -> Error {
+        Error::new_context(ErrorType::XzStream(self), context)
+    }
+}

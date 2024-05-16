@@ -1,6 +1,9 @@
 //! Data structures for representing and storing the AcaciaLinux index files
 
-use std::io::{ErrorKind, Read, Write};
+use std::{
+    io::{ErrorKind, Read, Write},
+    path::{Path, PathBuf},
+};
 
 use log::debug;
 
@@ -19,6 +22,34 @@ pub struct IndexFile {
     pub version: u8,
     /// The commands listed in the file
     pub commands: Vec<IndexCommand>,
+}
+
+impl IndexFile {
+    /// Walks the index file and yields the entries
+    /// # Arguments
+    /// * `function` - The yield function providing the current working directory and the command to be executed
+    pub fn walk<F: FnMut(&Path, &IndexCommand) -> Result<bool, Error>>(
+        &self,
+        mut function: F,
+    ) -> Result<(), Error> {
+        let mut path = PathBuf::new();
+
+        for command in &self.commands {
+            if !function(&path, command)? {
+                break;
+            }
+
+            match command {
+                IndexCommand::DirectoryUP => {
+                    path.pop();
+                }
+                IndexCommand::Directory { info: _, name } => path.push(name),
+                _ => {}
+            };
+        }
+
+        Ok(())
+    }
 }
 
 impl Packable for IndexFile {

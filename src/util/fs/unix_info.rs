@@ -1,7 +1,15 @@
 use std::{
-    io::{Read, Write},
-    os::unix::fs::MetadataExt,
+    fs::{File, Permissions},
+    io::{self, Read, Write},
+    os::{
+        fd::AsRawFd,
+        unix,
+        unix::fs::{MetadataExt, PermissionsExt},
+    },
+    path::Path,
 };
+
+use nix::sys::stat::{FchmodatFlags, Mode};
 
 use crate::{
     error::{Error, ErrorExt},
@@ -42,6 +50,47 @@ impl UNIXInfo {
         let mode = metadata.mode();
 
         Ok(Self { uid, gid, mode })
+    }
+
+    /// Applies this unix information to a file path
+    /// # Arguments
+    /// * `path` - The path to apply the information to
+    pub fn apply_path(&self, path: &Path) -> Result<(), Error> {
+        unix::fs::lchown(path, Some(self.uid), Some(self.gid))
+            .e_context(|| format!("Changing ownership to {}:{}", self.uid, self.gid))?;
+
+        match nix::sys::stat::fchmodat(
+            None,
+            path,
+            Mode::from_bits_retain(self.mode.try_into().expect("Convert to mode to u32")),
+            FchmodatFlags::NoFollowSymlink,
+        ) {
+            Ok(()) => Ok(()),
+            Err(e) => Err(io::Error::from(e)),
+        }
+        .e_context(|| format!("Changing ownership to {}:{}", self.uid, self.gid))?;
+
+        Ok(())
+    }
+
+    /// Applies this unix information to an open file
+    /// # Arguments
+    /// * `file` - The file to apply to
+    pub fn apply_file(&self, file: &mut File) -> Result<(), Error> {
+        file.set_permissions(Permissions::from_mode(self.mode))
+            .e_context(|| format!("Setting mode to {:o}", self.mode))?;
+
+        match nix::unistd::fchown(
+            file.as_raw_fd(),
+            Some(self.uid.into()),
+            Some(self.gid.into()),
+        ) {
+            Ok(()) => Ok(()),
+            Err(e) => Err(io::Error::from(e)),
+        }
+        .e_context(|| format!("Changing ownership to {}:{}", self.uid, self.gid))?;
+
+        Ok(())
     }
 }
 

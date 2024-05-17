@@ -141,7 +141,7 @@ impl ObjectDB {
         let mut output: Box<dyn Write> = match compression {
             ObjectCompression::None => Box::new(dst_file),
             ObjectCompression::Xz => {
-                debug!("Using XZ compression");
+                trace!("Using XZ compression for inserting object");
 
                 let stream = xz::stream::Stream::new_easy_encoder(6, xz::stream::Check::None)
                     .e_context(|| "Creating xz stream")?;

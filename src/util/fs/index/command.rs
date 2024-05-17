@@ -1,9 +1,16 @@
-use std::io::{ErrorKind, Read, Write};
+use std::{
+    fmt::Display,
+    io::{self, ErrorKind, Read, Write},
+    path::{Path, PathBuf},
+};
 
 use crate::{
     error::{Error, ErrorExt},
-    model::ObjectID,
-    util::{fs::UNIXInfo, Packable, Unpackable},
+    model::{ObjectDB, ObjectID},
+    util::{
+        fs::{self, PathUtil, UNIXInfo},
+        Packable, Unpackable,
+    },
 };
 
 use super::IndexCommandType;
@@ -99,6 +106,49 @@ pub enum IndexCommand {
         /// The destination the symlink points to
         dest: String,
     },
+}
+
+impl IndexCommand {
+    /// Executes this index command in `path`
+    /// # Arguments
+    /// * `path` - The working directory to execute the command in
+    /// * `db` - The object database to use for retrieving objects
+    pub fn execute(&self, path: &Path, db: &ObjectDB) -> Result<(), Error> {
+        match self {
+            Self::File { info, name, oid } => {
+                let path = path.join(name);
+                let mut object = db.read(oid).e_context(|| "Retrieving object")?;
+
+                let mut file = fs::file_create(&path)
+                    .e_context(|| format!("Creating file {}", path.str_lossy()))?;
+
+                info.apply_file(&mut file)
+                    .e_context(|| format!("Applying UNIX info to {}", path.str_lossy()))?;
+
+                io::copy(&mut object, &mut file).e_context(|| "Copying data")?;
+            }
+
+            Self::Directory { info, name } => {
+                let path = path.join(name);
+                fs::create_dir_all(&path)?;
+
+                info.apply_path(&path)
+                    .e_context(|| format!("Applying UNIX info to {}", path.str_lossy()))?;
+            }
+
+            Self::Symlink { info, name, dest } => {
+                let path = path.join(name);
+                fs::create_symlink(&path, &PathBuf::from(dest))?;
+
+                info.apply_path(&path)
+                    .e_context(|| format!("Applying UNIX info to {}", path.str_lossy()))?;
+            }
+
+            Self::DirectoryUP => {}
+        }
+
+        Ok(())
+    }
 }
 
 impl Packable for IndexCommand {
@@ -203,5 +253,20 @@ impl Unpackable for IndexCommand {
                 IndexCommand::Symlink { info, name, dest }
             }
         }))
+    }
+}
+
+impl Display for IndexCommand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            IndexCommand::DirectoryUP => write!(f, "CD .."),
+            IndexCommand::Directory { info: _, name } => write!(f, "CD {name}"),
+            IndexCommand::File { info: _, name, oid } => write!(f, "FILE {oid} => {name}"),
+            IndexCommand::Symlink {
+                info: _,
+                name,
+                dest,
+            } => write!(f, "SYM {name} => {dest}"),
+        }
     }
 }

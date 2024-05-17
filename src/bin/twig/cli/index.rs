@@ -7,7 +7,7 @@ use tooling::{
     model::{ObjectDB, ObjectID},
     tools::indexer::Indexer,
     util::{
-        fs::{self, PathUtil},
+        fs::{self, file_open, PathUtil},
         Packable, Unpackable,
     },
 };
@@ -48,6 +48,15 @@ enum Command {
 
         /// The path to index
         path: PathBuf,
+    },
+    /// Deploy an index to a directory
+    Deploy {
+        /// The index file to deploy
+        #[arg(long, short)]
+        index: PathBuf,
+
+        /// The directory to deploy to
+        root: PathBuf,
     },
 }
 
@@ -98,6 +107,18 @@ impl Command {
                 if *stat {
                     print_stat(file_contents);
                 }
+            }
+            Command::Deploy { index, root } => {
+                let db = ObjectDB::init(cli.get_home()?.object_db_path(), 5)
+                    .e_context(|| "Opening object database")?;
+
+                let mut file = file_open(index).e_context(|| "Opening index file")?;
+                let index = IndexFile::try_unpack(&mut file).e_context(|| "Reading index")?;
+
+                fs::create_dir_all(root)
+                    .e_context(|| format!("Creating deploy root {}", root.str_lossy()))?;
+
+                index.deploy(root, &db).e_context(|| "Deploying index")?;
             }
         }
 

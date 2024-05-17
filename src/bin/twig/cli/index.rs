@@ -58,6 +58,11 @@ enum Command {
         /// The directory to deploy to
         root: PathBuf,
     },
+    /// List the contents of an index file
+    List {
+        /// The index file to read
+        file: PathBuf,
+    },
 }
 
 impl CommandIndex {
@@ -119,6 +124,37 @@ impl Command {
                     .e_context(|| format!("Creating deploy root {}", root.str_lossy()))?;
 
                 index.deploy(root, &db).e_context(|| "Deploying index")?;
+            }
+            Command::List { file } => {
+                let mut file = file_open(file).e_context(|| "Opening index file")?;
+                let index = IndexFile::try_unpack(&mut file).e_context(|| "Reading index")?;
+
+                index
+                    .walk(|path, command| {
+                        match command {
+                            fs::IndexCommand::DirectoryUP => {}
+                            fs::IndexCommand::Directory { info: _, name } => {
+                                println!("{}/", path.join(name).str_lossy());
+                            }
+                            fs::IndexCommand::File {
+                                info: _,
+                                name,
+                                oid: _,
+                            } => {
+                                println!("{}", path.join(name).str_lossy())
+                            }
+                            fs::IndexCommand::Symlink {
+                                info: _,
+                                name,
+                                dest: _,
+                            } => {
+                                println!("{}", path.join(name).str_lossy())
+                            }
+                        }
+
+                        Ok(true)
+                    })
+                    .e_context(|| "Walking index")?;
             }
         }
 

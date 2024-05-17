@@ -20,7 +20,10 @@ pub use pathutil::*;
 
 use crate::error::{Error, ErrorExt};
 use log::trace;
-use std::{fs::File, path::Path};
+use std::{
+    fs::{self, File},
+    path::Path,
+};
 
 /// Creates a directory
 ///
@@ -49,6 +52,13 @@ pub fn create_symlink(path: &Path, destination: &Path) -> Result<(), Error> {
         path.to_string_lossy(),
         destination.to_string_lossy()
     );
+
+    // If the path exists, try to remove it first
+    if path.exists() {
+        fs::remove_file(path)
+            .e_context(|| format!("Removing existing symlink or file {}", path.str_lossy()))?
+    }
+
     std::os::unix::fs::symlink(destination, path).e_context(|| {
         format!(
             "Creating symlink '{}' pointing to '{}'",

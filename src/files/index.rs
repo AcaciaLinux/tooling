@@ -9,6 +9,7 @@ use log::debug;
 
 use crate::{
     error::{Error, ErrorExt},
+    model::ObjectDB,
     util::{fs::IndexCommand, Packable, Unpackable},
 };
 
@@ -47,6 +48,21 @@ impl IndexFile {
                 _ => {}
             };
         }
+
+        Ok(())
+    }
+
+    /// Deploys this index to `root`
+    /// # Arguments
+    /// * `root` - The root directory to deploy to
+    /// * `db` - The object database to use for getting objects
+    pub fn deploy(&self, root: &Path, db: &ObjectDB) -> Result<(), Error> {
+        self.walk(|path, command| {
+            debug!("Command: {command}");
+            command.execute(&root.join(path), db)?;
+
+            Ok(true)
+        })?;
 
         Ok(())
     }

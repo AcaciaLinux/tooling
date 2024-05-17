@@ -2,6 +2,7 @@
 
 use std::{collections::LinkedList, string::FromUtf8Error};
 
+use crate::model::ObjectDBError;
 #[cfg(feature = "builder")]
 use crate::tools::builder::BuilderError;
 
@@ -29,6 +30,7 @@ pub enum ErrorType {
     Dependency(DependencyError),
     FromUTF8(FromUtf8Error),
     XzStream(xz::stream::Error),
+    ObjectDB(ObjectDBError),
     Other(String),
 }
 
@@ -105,6 +107,7 @@ impl std::fmt::Display for ErrorType {
             Self::Dependency(e) => e.fmt(f),
             Self::FromUTF8(e) => e.fmt(f),
             Self::XzStream(e) => e.fmt(f),
+            Self::ObjectDB(e) => e.fmt(f),
             Self::Other(e) => write!(f, "{}", e),
         }
     }

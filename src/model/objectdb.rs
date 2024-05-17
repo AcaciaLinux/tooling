@@ -1,4 +1,5 @@
 use std::{
+    fmt::Display,
     io::{self, Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
 };
@@ -6,7 +7,7 @@ use std::{
 use log::{debug, trace};
 
 use crate::{
-    error::{Error, ErrorExt},
+    error::{Error, ErrorExt, ErrorType, Throwable},
     model::ObjectType,
     util::{
         fs::{self, file_open, PathUtil},
@@ -156,12 +157,12 @@ impl ObjectDB {
         Ok(object)
     }
 
-    /// Read an object from the database
+    /// Tries to read an object from the database
     /// # Arguments
     /// * `oid` - The object id of the object to read
     /// # Returns
     /// `None` if the object does not exist, else an [ObjectReader](super::ObjectReader)
-    pub fn read(&self, oid: ObjectID) -> Result<Option<ObjectReader>, Error> {
+    pub fn try_read(&self, oid: &ObjectID) -> Result<Option<ObjectReader>, Error> {
         let mut path = self.root.join(oid.to_path(self.depth));
         path.set_extension(OBJECT_FILE_EXTENSION);
 
@@ -176,5 +177,52 @@ impl ObjectDB {
             .e_context(|| format!("Creating object reader for {oid}"))?;
 
         Ok(Some(reader))
+    }
+
+    /// Reads an object from the database
+    /// # Arguments
+    /// * `oid` - The object id of the object to read
+    /// # Returns
+    /// An [ObjectReader](super::ObjectReader) for reading object data
+    pub fn read(&self, oid: &ObjectID) -> Result<ObjectReader, Error> {
+        match self.try_read(oid)? {
+            None => Err(Error::new(ErrorType::ObjectDB(
+                ObjectDBError::ObjectNotFound(oid.clone()),
+            ))),
+            Some(r) => Ok(r),
+        }
+    }
+}
+
+/// An error that ocurred while working with the object database
+#[derive(Debug)]
+pub enum ObjectDBError {
+    /// An object was not found in the database
+    ObjectNotFound(ObjectID),
+}
+
+impl Display for ObjectDBError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ObjectNotFound(oid) => write!(f, "Object {oid} not found"),
+        }
+    }
+}
+
+impl<T> ErrorExt<T> for Result<T, ObjectDBError> {
+    fn e_context<S: ToString, F: Fn() -> S>(self, context: F) -> Result<T, Error> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => Err(Error::new_context(
+                ErrorType::ObjectDB(e),
+                context().to_string(),
+            )),
+        }
+    }
+}
+
+impl Throwable for ObjectDBError {
+    fn throw(self, context: String) -> Error {
+        Error::new_context(ErrorType::ObjectDB(self), context)
     }
 }

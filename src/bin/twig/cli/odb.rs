@@ -64,9 +64,7 @@ impl Command {
                     Ok(oid) => oid,
                 };
 
-                let file = odb.read(oid)?;
-
-                let mut object = file.unwrap();
+                let mut object = odb.read(&oid)?;
 
                 if let Some(output) = output {
                     let mut output_file =

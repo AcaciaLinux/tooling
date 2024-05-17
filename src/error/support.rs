@@ -1,13 +1,18 @@
 //! Support code to wrap other errors in `tooling::Error` structs
+use std::string::FromUtf8Error;
+
 use http::StatusCode;
 
 use super::{dependency::DependencyError, AssertionError, Error, ErrorExt, ErrorType, Throwable};
 
 impl<T> ErrorExt<T> for Result<T, AssertionError> {
-    fn e_context<F: Fn() -> String>(self, context: F) -> Result<T, Error> {
+    fn e_context<S: ToString, F: Fn() -> S>(self, context: F) -> Result<T, Error> {
         match self {
             Ok(v) => Ok(v),
-            Err(e) => Err(Error::new_context(ErrorType::Assert(e), context())),
+            Err(e) => Err(Error::new_context(
+                ErrorType::Assert(e),
+                context().to_string(),
+            )),
         }
     }
 }
@@ -19,10 +24,10 @@ impl Throwable for AssertionError {
 }
 
 impl<T> ErrorExt<T> for Result<T, std::io::Error> {
-    fn e_context<F: Fn() -> String>(self, context: F) -> Result<T, Error> {
+    fn e_context<S: ToString, F: Fn() -> S>(self, context: F) -> Result<T, Error> {
         match self {
             Ok(v) => Ok(v),
-            Err(e) => Err(Error::new_context(ErrorType::IO(e), context())),
+            Err(e) => Err(Error::new_context(ErrorType::IO(e), context().to_string())),
         }
     }
 }
@@ -34,10 +39,13 @@ impl Throwable for std::io::Error {
 }
 
 impl<T> ErrorExt<T> for Result<T, elf::ParseError> {
-    fn e_context<F: Fn() -> String>(self, context: F) -> Result<T, Error> {
+    fn e_context<S: ToString, F: Fn() -> S>(self, context: F) -> Result<T, Error> {
         match self {
             Ok(v) => Ok(v),
-            Err(e) => Err(Error::new_context(ErrorType::ELFParse(e), context())),
+            Err(e) => Err(Error::new_context(
+                ErrorType::ELFParse(e),
+                context().to_string(),
+            )),
         }
     }
 }
@@ -67,12 +75,12 @@ impl std::fmt::Display for TOMLError {
 }
 
 impl<T> ErrorExt<T> for Result<T, toml::de::Error> {
-    fn e_context<F: Fn() -> String>(self, context: F) -> Result<T, Error> {
+    fn e_context<S: ToString, F: Fn() -> S>(self, context: F) -> Result<T, Error> {
         match self {
             Ok(v) => Ok(v),
             Err(e) => Err(Error::new_context(
                 ErrorType::TOML(TOMLError::Deserialize(e)),
-                context(),
+                context().to_string(),
             )),
         }
     }
@@ -85,12 +93,12 @@ impl Throwable for toml::de::Error {
 }
 
 impl<T> ErrorExt<T> for Result<T, toml::ser::Error> {
-    fn e_context<F: Fn() -> String>(self, context: F) -> Result<T, Error> {
+    fn e_context<S: ToString, F: Fn() -> S>(self, context: F) -> Result<T, Error> {
         match self {
             Ok(v) => Ok(v),
             Err(e) => Err(Error::new_context(
                 ErrorType::TOML(TOMLError::Serialize(e)),
-                context(),
+                context().to_string(),
             )),
         }
     }
@@ -124,12 +132,12 @@ impl std::fmt::Display for CURLError {
 }
 
 impl<T> ErrorExt<T> for Result<T, curl::Error> {
-    fn e_context<F: Fn() -> String>(self, context: F) -> Result<T, Error> {
+    fn e_context<S: ToString, F: Fn() -> S>(self, context: F) -> Result<T, Error> {
         match self {
             Ok(v) => Ok(v),
             Err(e) => Err(Error::new_context(
                 ErrorType::CURL(CURLError::CURL(e)),
-                context(),
+                context().to_string(),
             )),
         }
     }
@@ -142,10 +150,13 @@ impl Throwable for curl::Error {
 }
 
 impl<T> ErrorExt<T> for Result<T, DependencyError> {
-    fn e_context<F: Fn() -> String>(self, context: F) -> Result<T, Error> {
+    fn e_context<S: ToString, F: Fn() -> S>(self, context: F) -> Result<T, Error> {
         match self {
             Ok(v) => Ok(v),
-            Err(e) => Err(Error::new_context(ErrorType::Dependency(e), context())),
+            Err(e) => Err(Error::new_context(
+                ErrorType::Dependency(e),
+                context().to_string(),
+            )),
         }
     }
 }
@@ -153,5 +164,41 @@ impl<T> ErrorExt<T> for Result<T, DependencyError> {
 impl Throwable for DependencyError {
     fn throw(self, context: String) -> Error {
         Error::new_context(ErrorType::Dependency(self), context)
+    }
+}
+
+impl<T> ErrorExt<T> for Result<T, FromUtf8Error> {
+    fn e_context<S: ToString, F: Fn() -> S>(self, context: F) -> Result<T, Error> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => Err(Error::new_context(
+                ErrorType::FromUTF8(e),
+                context().to_string(),
+            )),
+        }
+    }
+}
+
+impl Throwable for FromUtf8Error {
+    fn throw(self, context: String) -> Error {
+        Error::new_context(ErrorType::FromUTF8(self), context)
+    }
+}
+
+impl<T> ErrorExt<T> for Result<T, xz::stream::Error> {
+    fn e_context<S: ToString, F: Fn() -> S>(self, context: F) -> Result<T, Error> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => Err(Error::new_context(
+                ErrorType::XzStream(e),
+                context().to_string(),
+            )),
+        }
+    }
+}
+
+impl Throwable for xz::stream::Error {
+    fn throw(self, context: String) -> Error {
+        Error::new_context(ErrorType::XzStream(self), context)
     }
 }

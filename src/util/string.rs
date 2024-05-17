@@ -15,5 +15,4 @@ pub fn replace_package_variables(string: &str, package: &dyn CorePackage) -> Str
     string
         .replace("$PKG_NAME", package.get_name())
         .replace("$PKG_VERSION", package.get_version())
-        .replace("$PKG_ARCH", package.get_arch())
 }

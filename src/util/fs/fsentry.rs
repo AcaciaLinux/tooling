@@ -13,7 +13,7 @@ mod directory;
 pub use directory::*;
 
 mod elf;
-pub use elf::*;
+pub use self::elf::*;
 
 mod script;
 pub use script::*;

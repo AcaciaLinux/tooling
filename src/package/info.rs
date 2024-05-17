@@ -1,6 +1,4 @@
-use crate::util::parse::versionstring::VersionString;
-
-use super::{ArchitecturePackage, CorePackage, NameVersionPackage, NamedPackage, VersionedPackage};
+use super::{CorePackage, NameVersionPackage, NamedPackage, VersionedPackage};
 
 /// Describes a package, just the neccessary stuff
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -11,31 +9,18 @@ pub struct PackageInfo {
     pub version: String,
     /// The package version
     pub pkgver: u32,
-    /// The architecture it is built for
-    pub arch: String,
+    /// The unique package id
+    pub id: String,
 }
 
 impl PackageInfo {
-    /// Creates a `PackageInfo` struct from a `VersionString`
-    /// # Arguments
-    /// * `version_string` - The source struct
-    /// * `arch` - The archtecture to use
-    pub fn from_version_string(version_string: VersionString, arch: String) -> Self {
-        Self {
-            name: version_string.name,
-            version: version_string.version,
-            pkgver: version_string.pkgver,
-            arch,
-        }
-    }
-
-    /// Create a `PackageInfo` from a `NameVersionPackage` and an architecture
-    pub fn from_package_arch(package: &dyn NameVersionPackage, arch: String) -> Self {
+    /// Create a `PackageInfo` from a `NameVersionPackage`
+    pub fn from_package(package: &dyn NameVersionPackage) -> Self {
         Self {
             name: package.get_name().to_owned(),
             version: package.get_version().to_owned(),
             pkgver: package.get_pkgver(),
-            arch,
+            id: package.get_id().to_owned(),
         }
     }
 }
@@ -46,7 +31,7 @@ impl From<&dyn CorePackage> for PackageInfo {
             name: value.get_name().to_owned(),
             version: value.get_version().to_owned(),
             pkgver: value.get_pkgver(),
-            arch: value.get_arch().to_owned(),
+            id: value.get_id().to_owned(),
         }
     }
 }
@@ -64,11 +49,8 @@ impl VersionedPackage for PackageInfo {
     fn get_pkgver(&self) -> u32 {
         self.pkgver
     }
-}
-
-impl ArchitecturePackage for PackageInfo {
-    fn get_arch(&self) -> &str {
-        &self.arch
+    fn get_id(&self) -> &str {
+        &self.id
     }
 }
 

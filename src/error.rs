@@ -1,11 +1,10 @@
 //! Common error structure used all over the tooling
 
-use std::collections::LinkedList;
+use std::{collections::LinkedList, string::FromUtf8Error};
 
+use crate::model::ObjectDBError;
 #[cfg(feature = "builder")]
 use crate::tools::builder::BuilderError;
-
-use crate::validators::ValidationError;
 
 use self::{
     assert::AssertionError,
@@ -27,9 +26,12 @@ pub enum ErrorType {
     TOML(TOMLError),
     #[cfg(feature = "builder")]
     Builder(BuilderError),
-    Validation(ValidationError),
     CURL(CURLError),
     Dependency(DependencyError),
+    FromUTF8(FromUtf8Error),
+    XzStream(xz::stream::Error),
+    ObjectDB(ObjectDBError),
+    Other(String),
 }
 
 /// The error struct, containing the error and a context
@@ -46,7 +48,7 @@ pub trait ErrorExt<T> {
     /// Adds context to an error. This function takes a trait, so strings do only get constructed when needed
     /// # Arguments
     /// * `context` - A closure that returns the context message
-    fn e_context<F: Fn() -> String>(self, context: F) -> Result<T, Error>;
+    fn e_context<S: ToString, F: Fn() -> S>(self, context: F) -> Result<T, Error>;
 }
 
 /// A trait for types that can be populated to an `Error`
@@ -101,9 +103,12 @@ impl std::fmt::Display for ErrorType {
             Self::TOML(e) => e.fmt(f),
             #[cfg(feature = "builder")]
             Self::Builder(e) => e.fmt(f),
-            Self::Validation(e) => e.fmt(f),
             Self::CURL(e) => e.fmt(f),
             Self::Dependency(e) => e.fmt(f),
+            Self::FromUTF8(e) => e.fmt(f),
+            Self::XzStream(e) => e.fmt(f),
+            Self::ObjectDB(e) => e.fmt(f),
+            Self::Other(e) => write!(f, "{}", e),
         }
     }
 }
@@ -121,11 +126,11 @@ impl std::fmt::Display for Error {
 }
 
 impl<T> ErrorExt<T> for Result<T, Error> {
-    fn e_context<F: Fn() -> String>(self, context: F) -> Result<T, Error> {
+    fn e_context<S: ToString, F: Fn() -> S>(self, context: F) -> Result<T, Error> {
         match self {
             Ok(v) => Ok(v),
             Err(mut e) => {
-                e.context.push_front(context());
+                e.context.push_front(context().to_string());
                 Err(e)
             }
         }

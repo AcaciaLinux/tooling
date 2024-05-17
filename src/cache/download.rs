@@ -1,14 +1,14 @@
 //! Cache for downloaded files
 
+use base64::{prelude::BASE64_URL_SAFE, Engine};
+
 use std::{
     fs::remove_file,
-    hash::Hasher,
     path::{Path, PathBuf},
 };
 
 use http::StatusCode;
-use log::{debug, warn};
-use rs_sha512::{HasherContext, Sha512Hasher};
+use log::{debug, info, warn};
 
 use crate::{
     error::{Error, ErrorExt},
@@ -59,10 +59,12 @@ impl DownloadCache {
         message: &str,
         expect_success: bool,
     ) -> Result<StatusCode, Error> {
-        let hash = hash_string(url);
+        let hash = util::hash::hash_string(url);
+        let hash = BASE64_URL_SAFE.encode(hash);
 
         let cache_path = self.workdir.join(&hash);
         if cache_path.exists() {
+            info!("{}", message);
             debug!("Using cached value {hash}");
 
             match copy(&cache_path, file) {
@@ -96,12 +98,4 @@ impl DownloadCache {
             Ok(res)
         }
     }
-}
-
-/// Hashes the supplied string
-fn hash_string(string: &str) -> String {
-    let mut hasher = Sha512Hasher::default();
-    hasher.write(string.as_bytes());
-    let bytes_result = HasherContext::finish(&mut hasher);
-    format!("{bytes_result:02x}")
 }

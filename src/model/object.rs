@@ -3,7 +3,23 @@ use crate::{
     util::{Packable, Unpackable},
 };
 
-use super::{ObjectCompression, ObjectDependency, ObjectID, ObjectType};
+mod objectcompression;
+pub use objectcompression::*;
+
+mod objectdb;
+pub use objectdb::*;
+
+mod objectdependency;
+pub use objectdependency::*;
+
+mod objectid;
+pub use objectid::*;
+
+mod objectreader;
+pub use objectreader::*;
+
+mod objecttype;
+pub use objecttype::*;
 
 /// A container for generic data to be handled by the AcaciaLinux system
 #[derive(Debug)]

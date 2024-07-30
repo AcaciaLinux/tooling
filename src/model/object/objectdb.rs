@@ -8,7 +8,6 @@ use log::{debug, trace};
 
 use crate::{
     error::{Error, ErrorExt, ErrorType, Throwable},
-    model::ObjectType,
     util::{
         fs::{self, file_open, PathUtil},
         hash::hash_stream,
@@ -17,7 +16,7 @@ use crate::{
     OBJECT_FILE_EXTENSION,
 };
 
-use super::{Object, ObjectCompression, ObjectDependency, ObjectID, ObjectReader};
+use super::{Object, ObjectCompression, ObjectDependency, ObjectID, ObjectReader, ObjectType};
 
 /// A database for storing AcaciaLinux objects
 pub struct ObjectDB {

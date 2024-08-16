@@ -1,11 +1,13 @@
 //! The data structures to parse from the formula file, refer to <https://acacialinux.github.io/concept/formula> for more information
 
-use serde::{Deserialize, Deserializer, Serialize};
+use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
 
 use crate::{
-    package::CorePackage,
+    package::{CorePackage, NameVersionPackage, NamedPackage, VersionedPackage},
     util::{
-        architecture::Architecture, parse::versionstring::VersionString,
+        architecture::{deserialize_archs, Architecture},
+        parse::versionstring::VersionString,
         string::replace_package_variables,
     },
 };
@@ -24,7 +26,6 @@ pub struct FormulaFile {
 pub struct FormulaPackage {
     pub name: String,
     pub version: String,
-    pub pkgver: u32,
     pub description: String,
 
     pub host_dependencies: Option<Vec<VersionString>>,
@@ -43,21 +44,9 @@ pub struct FormulaPackage {
     pub package: Option<String>,
 
     pub sources: Option<Vec<FormulaPackageSource>>,
-}
 
-/// Deserializes a vector of architectures using serde
-fn deserialize_archs<'de, D>(deserializer: D) -> Result<Option<Vec<Architecture>>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let archs: Option<Vec<String>> = Option::deserialize(deserializer)?;
-
-    Ok(archs.map(|archs| {
-        archs
-            .into_iter()
-            .map(|a| Architecture::new(a, Vec::new()))
-            .collect()
-    }))
+    #[serde(default)]
+    pub layout: IndexMap<String, Vec<String>>,
 }
 
 /// A source for a package
@@ -69,6 +58,30 @@ pub struct FormulaPackageSource {
     #[serde(default = "default_formula_package_source_extract")]
     pub extract: bool,
 }
+
+impl NamedPackage for FormulaPackage {
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+}
+
+impl VersionedPackage for FormulaPackage {
+    fn get_version(&self) -> &str {
+        &self.version
+    }
+
+    fn get_pkgver(&self) -> u32 {
+        0
+    }
+
+    fn get_id(&self) -> &str {
+        todo!()
+    }
+}
+
+impl NameVersionPackage for FormulaPackage {}
+
+impl CorePackage for FormulaPackage {}
 
 /// Provides the default value for the `strip` field: `true`
 fn default_formula_package_strip() -> bool {

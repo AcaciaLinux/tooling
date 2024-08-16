@@ -1,7 +1,7 @@
 //! Utilities for working with architectures
 
 use crate::error::Error;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::error::ErrorExt;
 
@@ -77,4 +77,19 @@ impl Architecture {
 
         is_subset(&other.subarchs, &self.subarchs)
     }
+}
+
+/// Deserializes a vector of architectures using serde
+pub fn deserialize_archs<'de, D>(deserializer: D) -> Result<Option<Vec<Architecture>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let archs: Option<Vec<String>> = Option::deserialize(deserializer)?;
+
+    Ok(archs.map(|archs| {
+        archs
+            .into_iter()
+            .map(|a| Architecture::new(a, Vec::new()))
+            .collect()
+    }))
 }

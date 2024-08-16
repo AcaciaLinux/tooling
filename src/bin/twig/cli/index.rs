@@ -10,6 +10,7 @@ use tooling::{
         fs::{self, file_open, PathUtil},
         Packable, Unpackable,
     },
+    ODB_DEPTH,
 };
 
 use super::{common::Compression, Cli};
@@ -98,7 +99,7 @@ impl Command {
                 };
 
                 let mut file = fs::file_create(output).e_context(context)?;
-                let mut db = ObjectDB::init(cli.get_home()?.object_db_path(), 5)
+                let mut db = ObjectDB::init(cli.get_home()?.object_db_path(), ODB_DEPTH)
                     .e_context(|| "Opening object database")?;
 
                 let indexer = Indexer::new(path.clone());
@@ -114,7 +115,7 @@ impl Command {
                 }
             }
             Command::Deploy { index, root } => {
-                let db = ObjectDB::init(cli.get_home()?.object_db_path(), 5)
+                let db = ObjectDB::init(cli.get_home()?.object_db_path(), ODB_DEPTH)
                     .e_context(|| "Opening object database")?;
 
                 let mut file = file_open(index).e_context(|| "Opening index file")?;

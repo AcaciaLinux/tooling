@@ -25,6 +25,9 @@ pub static OBJECT_FILE_EXTENSION: &str = "aobj";
 /// The base64 engine
 pub static BASE64_ENGINE: GeneralPurpose = BASE64_URL_SAFE;
 
+/// The (currently) hardcoded depth for the object database
+pub static ODB_DEPTH: usize = 5;
+
 /// Provide a relative `PathBuf` pointing to the `DIST_DIR`
 pub fn dist_dir() -> PathBuf {
     PathBuf::from(DIST_DIR)

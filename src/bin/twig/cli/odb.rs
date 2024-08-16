@@ -5,6 +5,7 @@ use tooling::{
     error::{Error, ErrorExt, ErrorType},
     model::{ObjectDB, ObjectID},
     util::fs::{file_create, PathUtil},
+    ODB_DEPTH,
 };
 
 use super::{common::Compression, Cli};
@@ -44,7 +45,7 @@ enum Command {
 
 impl CommandOdb {
     pub fn run(&self, cli: &Cli) -> Result<i32, Error> {
-        let db = ObjectDB::init(cli.get_home()?.object_db_path(), 5)?;
+        let db = ObjectDB::init(cli.get_home()?.object_db_path(), ODB_DEPTH)?;
 
         self.command.run(cli, db)
     }

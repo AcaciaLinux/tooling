@@ -18,7 +18,11 @@ impl Home {
         debug!("Opening home @ {}", root.str_lossy());
         fs::create_dir_all(&root).e_context(|| format!("Creating home @ {}", root.str_lossy()))?;
 
-        Ok(Self { root })
+        let _self = Self { root };
+
+        fs::create_dir_all(&_self.get_tmp_dir()).e_context(|| "Creating tmp dir")?;
+
+        Ok(_self)
     }
 
     /// Returns the root of the home directory
@@ -29,5 +33,18 @@ impl Home {
     /// Returns the path to the object database
     pub fn object_db_path(&self) -> PathBuf {
         self.root.join("objects")
+    }
+
+    /// Returns the path to a temporary directory
+    /// in the home
+    pub fn get_tmp_dir(&self) -> PathBuf {
+        self.root.join("tmp")
+    }
+
+    /// Creates a file path for a temporary file
+    /// that is unique within the temporary directory
+    pub fn get_temp_file_path(&self) -> PathBuf {
+        let uuid = uuid::Uuid::new_v4();
+        self.get_tmp_dir().join(uuid.to_string())
     }
 }

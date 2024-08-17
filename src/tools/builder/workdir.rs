@@ -4,8 +4,11 @@ use uuid::Uuid;
 
 use crate::{
     error::{Error, ErrorExt},
+    model::Home,
     util,
 };
+
+use lazy_static::lazy_static;
 
 lazy_static! {
     /// The name of the install directory
@@ -22,12 +25,12 @@ pub struct BuilderWorkdir {
 }
 
 impl BuilderWorkdir {
-    /// Creates a new workdir at `<root>/builds/<id>`
+    /// Creates a new workdir at `<root>/<id>`
     /// # Arguments
     /// * `root` - The directory the workdir exists in
-    pub fn new(root: &Path) -> Result<Self, Error> {
+    pub fn new(home: &Home) -> Result<Self, Error> {
         let id = Uuid::new_v4().to_string();
-        let root = root.join("builds").join(&id);
+        let root = home.get_builds_dir().join(&id);
 
         util::fs::create_dir_all(&root)
             .e_context(|| format!("Creating workdir root @ {}", root.to_string_lossy()))?;

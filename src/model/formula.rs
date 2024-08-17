@@ -33,7 +33,7 @@ pub struct Formula {
     pub strip: bool,
 
     /// The architecture the package is built for
-    pub arch: Architecture,
+    pub arch: Option<Architecture>,
 
     /// The dependencies that are required on the building
     /// side of the package
@@ -94,7 +94,7 @@ impl FormulaFile {
         self,
         home: Home,
         parent: PathBuf,
-        architecture: Architecture,
+        architecture: Option<Architecture>,
     ) -> Result<Formula, Error> {
         let mut files: IndexMap<PathBuf, ObjectID> = IndexMap::new();
         let file_sources = self.package.sources.clone().unwrap_or_default();

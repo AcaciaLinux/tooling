@@ -1,8 +1,10 @@
 use std::{
     fmt::{Debug, Display},
     path::PathBuf,
+    str::FromStr,
 };
 
+use hex::FromHexError;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use sha2::{digest::Output, Sha256};
 
@@ -141,5 +143,13 @@ impl Unpackable for ObjectID {
                 hash: Vec::from(buf),
             }))
         }
+    }
+}
+
+impl FromStr for ObjectID {
+    type Err = FromHexError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::new_from_hex(s)
     }
 }

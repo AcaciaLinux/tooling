@@ -1,6 +1,7 @@
 use std::{
     fmt::Display,
-    io::{self, Read, Seek, SeekFrom, Write},
+    fs::File,
+    io::{self, copy, Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
 };
 
@@ -9,7 +10,7 @@ use log::{debug, trace};
 use crate::{
     error::{Error, ErrorExt, ErrorType, Throwable},
     util::{
-        fs::{self, file_open, PathUtil},
+        fs::{self, file_create, file_open, PathUtil},
         hash::hash_stream,
         Packable, Unpackable,
     },
@@ -190,6 +191,26 @@ impl ObjectDB {
             ))),
             Some(r) => Ok(r),
         }
+    }
+
+    /// Reads an object from the database and copies it to a file
+    /// # Arguments
+    /// * `oid` - The object id of the object to read
+    /// * `path` - The path to copy the object to
+    /// # Returns
+    /// A [File] seeked to the beginning to use or drop
+    pub fn read_to_file(&self, oid: &ObjectID, path: &Path) -> Result<File, Error> {
+        trace!("Extracting {oid} to {}", path.str_lossy());
+
+        let mut file = file_create(path)?;
+        let mut object = self.read(oid)?;
+
+        copy(&mut object, &mut file).e_context(|| "Copying object contents")?;
+
+        file.seek(SeekFrom::Start(0))
+            .e_context(|| "Seeking to beginning of file")?;
+
+        Ok(file)
     }
 }
 

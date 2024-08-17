@@ -47,4 +47,10 @@ impl Home {
         let uuid = uuid::Uuid::new_v4();
         self.get_tmp_dir().join(uuid.to_string())
     }
+
+    /// Returns the path to the temporary build folders
+    /// that are used to build the packages
+    pub fn get_builds_dir(&self) -> PathBuf {
+        self.get_tmp_dir().join("builds")
+    }
 }

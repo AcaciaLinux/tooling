@@ -130,3 +130,13 @@ pub fn file_open(path: &Path) -> Result<File, Error> {
 pub fn file_create(path: &Path) -> Result<File, Error> {
     File::create(path).e_context(|| format!("Creating file {}", path.to_string_lossy()))
 }
+
+/// Reads the contents of `path` to a string
+///
+/// Uses the [std::fs::read_to_string] function
+/// # Arguments
+/// * `path` - The path to the file to read
+pub fn file_read_to_string(path: &Path) -> Result<String, Error> {
+    std::fs::read_to_string(path)
+        .e_context(|| format!("Reading {} to string", path.to_string_lossy()))
+}

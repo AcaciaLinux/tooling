@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{io::Cursor, path::PathBuf};
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -15,7 +15,7 @@ use crate::{
     ODB_DEPTH,
 };
 
-use super::{Home, ObjectCompression, ObjectDB, ObjectID};
+use super::{Home, Object, ObjectCompression, ObjectDB, ObjectID};
 
 /// A resolved formula that uniquely describes a package's
 /// build instructions to be stored in the object database.
@@ -86,16 +86,18 @@ impl FormulaFile {
     /// All of these things get inserted into the `object_db`
     /// to resolve all dependencies as object references.
     ///
+    /// This will also insert the formula into the object database
     /// # Arguments
     /// * `home` - The home to use for the resolving process
     /// * `parent_dir` - The parent directory of the formula file
     /// * `architecture` - The architecture the formula is built for
     pub fn resolve(
         self,
-        home: Home,
+        home: &Home,
         parent: PathBuf,
         architecture: Option<Architecture>,
-    ) -> Result<Formula, Error> {
+        compression: ObjectCompression,
+    ) -> Result<(Formula, Object), Error> {
         let mut files: IndexMap<PathBuf, ObjectID> = IndexMap::new();
         let file_sources = self.package.sources.clone().unwrap_or_default();
         let mut object_db = ObjectDB::init(home.object_db_path(), ODB_DEPTH)?;
@@ -112,7 +114,7 @@ impl FormulaFile {
                 true,
             )?;
 
-            let object = object_db.insert_file(&tmp_path, ObjectCompression::Xz, true)?;
+            let object = object_db.insert_file(&tmp_path, compression, true)?;
 
             files.insert(dest, object.oid);
         }
@@ -122,7 +124,7 @@ impl FormulaFile {
         fs::walk_dir(&parent, true, &mut |entry| {
             results.push((
                 entry.path(),
-                object_db.insert_file(&entry.path(), ObjectCompression::Xz, true),
+                object_db.insert_file(&entry.path(), compression, true),
             ));
             true
         })
@@ -134,7 +136,7 @@ impl FormulaFile {
             files.insert(path, object.oid);
         }
 
-        Ok(Formula {
+        let formula = Formula {
             name: self.package.name,
             version: self.package.version,
             description: self.package.description,
@@ -153,6 +155,30 @@ impl FormulaFile {
 
             layout: self.package.layout,
             files,
-        })
+        };
+
+        let object = formula.insert(&mut object_db, compression)?;
+
+        Ok((formula, object))
+    }
+}
+
+impl Formula {
+    /// Returns the `TOML` string for this formula
+    pub fn toml(&self) -> String {
+        toml::to_string_pretty(self).expect("Serialize formula file should never fail")
+    }
+
+    /// Inserts this formula into `object_db`
+    /// # Arguments
+    /// * `object_db` - The objet db to insert the formula into
+    /// * `compression` - The compression to apply for inserting
+    pub fn insert(
+        &self,
+        object_db: &mut ObjectDB,
+        compression: ObjectCompression,
+    ) -> Result<Object, Error> {
+        let mut cursor = Cursor::new(self.toml());
+        object_db.insert_stream(&mut cursor, compression, true)
     }
 }

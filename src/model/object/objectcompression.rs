@@ -1,3 +1,7 @@
+use std::fmt::Display;
+
+use clap::ValueEnum;
+
 use crate::{
     error::ErrorExt,
     util::{Packable, Unpackable},
@@ -5,11 +9,25 @@ use crate::{
 
 /// The supported forms of compression applied to objects
 #[repr(u16)]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, ValueEnum)]
 pub enum ObjectCompression {
     /// No compression
     None = 0,
+    /// XZ compression
     Xz = 1,
+}
+
+impl Display for ObjectCompression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::None => "none",
+                Self::Xz => "xz",
+            }
+        )
+    }
 }
 
 impl ObjectCompression {

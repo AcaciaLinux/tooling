@@ -2,6 +2,8 @@
 
 use std::{collections::LinkedList, string::FromUtf8Error};
 
+use architecture::ArchitectureError;
+
 use crate::model::ObjectDBError;
 #[cfg(feature = "builder")]
 use crate::tools::builder::BuilderError;
@@ -14,6 +16,7 @@ use self::{
 
 pub mod support;
 
+pub mod architecture;
 pub mod assert;
 pub mod dependency;
 
@@ -28,6 +31,7 @@ pub enum ErrorType {
     Builder(BuilderError),
     CURL(CURLError),
     Dependency(DependencyError),
+    Architecture(ArchitectureError),
     FromUTF8(FromUtf8Error),
     XzStream(xz::stream::Error),
     ObjectDB(ObjectDBError),
@@ -105,6 +109,7 @@ impl std::fmt::Display for ErrorType {
             Self::Builder(e) => e.fmt(f),
             Self::CURL(e) => e.fmt(f),
             Self::Dependency(e) => e.fmt(f),
+            Self::Architecture(e) => e.fmt(f),
             Self::FromUTF8(e) => e.fmt(f),
             Self::XzStream(e) => e.fmt(f),
             Self::ObjectDB(e) => e.fmt(f),

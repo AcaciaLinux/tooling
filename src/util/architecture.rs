@@ -1,5 +1,7 @@
 //! Utilities for working with architectures
 
+use std::fmt::Display;
+
 use crate::error::Error;
 use serde::{Deserialize, Deserializer, Serialize};
 
@@ -92,4 +94,19 @@ where
             .map(|a| Architecture::new(a, Vec::new()))
             .collect()
     }))
+}
+
+impl Display for Architecture {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}{}", self.arch, self.subarchs.join("+"))
+    }
+}
+
+impl From<String> for Architecture {
+    fn from(value: String) -> Self {
+        Self {
+            arch: value,
+            subarchs: Vec::new(),
+        }
+    }
 }

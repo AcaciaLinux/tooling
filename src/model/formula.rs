@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    error::{Error, ErrorExt},
+    error::{architecture::ArchitectureError, Error, ErrorExt, ErrorType},
     files::formulafile::FormulaFile,
     util::{
         architecture::Architecture,
@@ -90,17 +90,42 @@ impl FormulaFile {
     /// # Arguments
     /// * `home` - The home to use for the resolving process
     /// * `parent_dir` - The parent directory of the formula file
-    /// * `architecture` - The architecture the formula is built for
+    /// * `build_architecture` - The architecture the formula is built for
+    /// * `compression` - The compression method to use for inserting the objects
     pub fn resolve(
         self,
         home: &Home,
         parent: PathBuf,
-        architecture: Option<Architecture>,
+        build_architecture: Architecture,
         compression: ObjectCompression,
     ) -> Result<(Formula, Object), Error> {
         let mut files: IndexMap<PathBuf, ObjectID> = IndexMap::new();
         let file_sources = self.package.sources.clone().unwrap_or_default();
         let mut object_db = ObjectDB::init(home.object_db_path(), ODB_DEPTH)?;
+
+        // If the formula has some supported architectures,
+        // make sure the build architecture is in them
+        let architecture = match self.package.get_architectures() {
+            None => Ok(None),
+            Some(archs) => {
+                let supported_archs: Vec<&Architecture> = archs
+                    .iter()
+                    .filter(|a| a.can_run_on(&build_architecture))
+                    .collect();
+
+                if supported_archs.is_empty() {
+                    Err(Error::new(ErrorType::Architecture(
+                        ArchitectureError::NotSupported {
+                            arch: build_architecture,
+                            supported: archs,
+                        },
+                    )))
+                } else {
+                    Ok(Some(build_architecture))
+                }
+            }
+        }
+        .e_context(|| "Resolving formula architecture")?;
 
         for source in file_sources {
             let url = source.get_url(&self.package);

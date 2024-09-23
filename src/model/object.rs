@@ -42,9 +42,6 @@ impl Packable for Object {
         self.ty.pack(output).e_context(context)?;
         self.compression.pack(output).e_context(context)?;
 
-        // GPG length
-        0u16.pack(output).e_context(context)?;
-
         (self.dependencies.len() as u16)
             .pack(output)
             .e_context(context)?;
@@ -65,11 +62,6 @@ impl Unpackable for Object {
         let oid = ObjectID::try_unpack(input).e_context(context)?;
         let ty = ObjectType::try_unpack(input).e_context(context)?;
         let compression = ObjectCompression::try_unpack(input).e_context(context)?;
-
-        // Read signature
-        let sig_len = u16::try_unpack(input).e_context(context)?;
-        let mut buf = vec![0u8; sig_len as usize];
-        input.read_exact(&mut buf).e_context(context)?;
 
         let deps_count = u16::try_unpack(input).e_context(context)?;
 

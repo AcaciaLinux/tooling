@@ -1,6 +1,10 @@
-use std::{io::Cursor, path::PathBuf};
+use std::{
+    io::Cursor,
+    path::{Path, PathBuf},
+};
 
 use indexmap::IndexMap;
+use log::trace;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -79,7 +83,7 @@ fn resolve_packages(packages: Option<Vec<VersionString>>) -> Vec<ObjectID> {
 }
 
 impl FormulaFile {
-    /// Resolves a formula by resolving the following:
+    /// Parses and resolves a formula by resolving the following:
     /// - Dependencies
     /// - Files
     ///
@@ -88,24 +92,30 @@ impl FormulaFile {
     ///
     /// This will also insert the formula into the object database
     /// # Arguments
+    /// * `formula_path` - The path to the formula file
     /// * `home` - The home to use for the resolving process
-    /// * `parent_dir` - The parent directory of the formula file
     /// * `build_architecture` - The architecture the formula is built for
     /// * `compression` - The compression method to use for inserting the objects
-    pub fn resolve(
-        self,
+    pub fn parse_and_resolve(
+        formula_path: &Path,
         home: &Home,
-        parent: PathBuf,
         build_architecture: Architecture,
         compression: ObjectCompression,
     ) -> Result<(Formula, Object), Error> {
+        let formula: FormulaFile = toml::from_str(&fs::file_read_to_string(formula_path)?)
+            .e_context(|| "Parsing formula source")?;
+
+        let parent = formula_path
+            .parent()
+            .expect("Parent directory of formula file");
+
         let mut files: IndexMap<PathBuf, ObjectID> = IndexMap::new();
-        let file_sources = self.package.sources.clone().unwrap_or_default();
+        let file_sources = formula.package.sources.clone().unwrap_or_default();
         let mut object_db = ObjectDB::init(home.object_db_path(), ODB_DEPTH)?;
 
         // If the formula has some supported architectures,
         // make sure the build architecture is in them
-        let architecture = match self.package.get_architectures() {
+        let architecture = match formula.package.get_architectures() {
             None => Ok(None),
             Some(archs) => {
                 let supported_archs: Vec<&Architecture> = archs
@@ -128,8 +138,8 @@ impl FormulaFile {
         .e_context(|| "Resolving formula architecture")?;
 
         for source in file_sources {
-            let url = source.get_url(&self.package);
-            let dest = PathBuf::from(source.get_dest(&self.package));
+            let url = source.get_url(&formula.package);
+            let dest = PathBuf::from(source.get_dest(&formula.package));
 
             let tmp_path = home.get_temp_file_path();
             download_to_file(
@@ -146,11 +156,18 @@ impl FormulaFile {
 
         let mut results = Vec::new();
 
-        fs::walk_dir(&parent, true, &mut |entry| {
-            results.push((
-                entry.path(),
-                object_db.insert_file(&entry.path(), compression, true),
-            ));
+        fs::walk_dir_virtual(parent, Path::new(""), true, &mut |entry, path| {
+            if entry.path() != formula_path {
+                results.push((
+                    path.to_owned(),
+                    object_db.insert_file(&entry.path(), compression, true),
+                ));
+            } else {
+                trace!(
+                    "Skipping inserting formula source into ODB: {}",
+                    formula_path.str_lossy()
+                );
+            }
             true
         })
         .e_context(|| "Walking formula parent directory")?;
@@ -162,23 +179,23 @@ impl FormulaFile {
         }
 
         let formula = Formula {
-            name: self.package.name,
-            version: self.package.version,
-            description: self.package.description,
+            name: formula.package.name,
+            version: formula.package.version,
+            description: formula.package.description,
 
-            strip: self.package.strip,
+            strip: formula.package.strip,
             arch: architecture,
 
-            host_dependencies: resolve_packages(self.package.host_dependencies),
-            target_dependencies: resolve_packages(self.package.target_dependencies),
-            extra_dependencies: resolve_packages(self.package.extra_dependencies),
+            host_dependencies: resolve_packages(formula.package.host_dependencies),
+            target_dependencies: resolve_packages(formula.package.target_dependencies),
+            extra_dependencies: resolve_packages(formula.package.extra_dependencies),
 
-            prepare: self.package.prepare,
-            build: self.package.build,
-            check: self.package.check,
-            package: self.package.package,
+            prepare: formula.package.prepare,
+            build: formula.package.build,
+            check: formula.package.check,
+            package: formula.package.package,
 
-            layout: self.package.layout,
+            layout: formula.package.layout,
             files,
         };
 

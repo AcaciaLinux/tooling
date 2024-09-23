@@ -3,13 +3,10 @@ use std::path::PathBuf;
 use clap::Parser;
 use log::info;
 use tooling::{
-    error::{Error, ErrorExt},
+    error::Error,
     files::formulafile::FormulaFile,
     model::ObjectCompression,
-    util::{
-        architecture::Architecture,
-        fs::{file_read_to_string, PathUtil},
-    },
+    util::{architecture::Architecture, fs::PathUtil},
 };
 
 use super::Cli;
@@ -33,19 +30,8 @@ impl IngestCommand {
     pub fn run(&self, cli: &Cli) -> Result<i32, Error> {
         let home = cli.get_home()?;
 
-        let formula_string = file_read_to_string(&self.file)?;
-        let formula_file: FormulaFile =
-            toml::from_str(&formula_string).e_context(|| "Parsing formula source")?;
-
-        let formula_parent = self
-            .file
-            .parent()
-            .expect("Parent for formula file")
-            .to_owned();
-
-        let (formula, object) = formula_file
-            .resolve(&home, formula_parent, self.get_arch()?, self.compression)
-            .e_context(|| "Resolving formula")?;
+        let (formula, object) =
+            FormulaFile::parse_and_resolve(&self.file, &home, self.get_arch()?, self.compression)?;
 
         info!(
             "Ingested {} -> {}:\n{:#?}",

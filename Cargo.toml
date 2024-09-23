@@ -14,6 +14,11 @@ mount = ["dep:sys-mount"]
 name = "twig"
 path = "src/bin/twig/twig.rs"
 
+[[bin]]
+name = "branch"
+path = "src/bin/branch/branch.rs"
+
+
 [dependencies]
 clap = { version = "4.4.8", features = ["derive"] }
 ctrlc = "3.4.1"

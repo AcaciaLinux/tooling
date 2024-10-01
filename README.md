@@ -17,3 +17,10 @@ Further information and documentation on branch can be found [here](docs/branch/
 ```bash
 branch --toolchain <toolchain> <formula.toml>
 ```
+
+## twig
+
+The `twig` tool is a low-level utility program to aid with internal things.
+It provides common utility functionality that can be interesting for scripting.
+
+Further information an documentation on `twig` can be found [here](docs/twig/README.md).

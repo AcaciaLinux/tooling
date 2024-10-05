@@ -56,6 +56,18 @@ pub trait ErrorExt<T> {
     /// # Arguments
     /// * `context` - A closure that returns the context message
     fn e_context<S: ToString, F: Fn() -> S>(self, context: F) -> Result<T, Error>;
+
+    /// Adds context to an error. This function takes a trait, so strings do only get constructed when needed
+    ///
+    /// Shorthand to [e_context](ErrorExt::e_context)
+    /// # Arguments
+    /// * `context` - A closure that returns the context message
+    fn ctx<S: ToString, F: Fn() -> S>(self, context: F) -> Result<T, Error>
+    where
+        Self: Sized,
+    {
+        self.e_context(context)
+    }
 }
 
 /// A trait for types that can be populated to an `Error`

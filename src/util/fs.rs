@@ -131,6 +131,20 @@ pub fn file_create(path: &Path) -> Result<File, Error> {
     File::create(path).e_context(|| format!("Creating file {}", path.to_string_lossy()))
 }
 
+/// Creates and opens a file in read and write mode.
+/// # Arguments
+/// * `path` - The path to the file to create
+pub fn file_create_rw(path: &Path) -> Result<File, Error> {
+    File::options()
+        .create(true)
+        .append(false)
+        .truncate(true)
+        .read(true)
+        .write(true)
+        .open(path)
+        .e_context(|| format!("Creating file {}", path.to_string_lossy()))
+}
+
 /// Reads the contents of `path` to a string
 ///
 /// Uses the [std::fs::read_to_string] function

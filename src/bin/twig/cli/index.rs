@@ -1,10 +1,15 @@
-use std::{collections::HashSet, path::PathBuf};
+use std::{
+    collections::HashSet,
+    io::{Seek, SeekFrom},
+    path::PathBuf,
+};
 
 use clap::Parser;
+use log::trace;
 use tooling::{
     error::{Error, ErrorExt},
     files::index::IndexFile,
-    model::{ObjectDB, ObjectID},
+    model::{ObjectDB, ObjectID, ObjectType},
     tools::indexer::Indexer,
     util::{
         fs::{self, file_open, PathUtil},
@@ -98,7 +103,7 @@ impl Command {
                     )
                 };
 
-                let mut file = fs::file_create(output).e_context(context)?;
+                let mut file = fs::file_create_rw(output).e_context(context)?;
                 let mut db = ObjectDB::init(cli.get_home()?.object_db_path(), ODB_DEPTH)
                     .e_context(|| "Opening object database")?;
 
@@ -107,8 +112,26 @@ impl Command {
                     .run(true, &mut db, compression.clone().into(), !force)
                     .e_context(context)?;
 
+                let dependencies: Vec<ObjectID> = index.get_objects().clone().into_iter().collect();
                 let file_contents = index.to_index_file();
                 file_contents.pack(&mut file).e_context(context)?;
+
+                file.seek(SeekFrom::Start(0))
+                    .ctx(|| "Seeking to start of index")?;
+
+                let object = db
+                    .insert_stream(
+                        &mut file,
+                        ObjectType::AcaciaIndex,
+                        compression.clone().into(),
+                        false,
+                        dependencies,
+                    )
+                    .ctx(|| "Inserting finished index")?;
+
+                trace!("Index object: {:?}", object);
+
+                println!("{}", object.oid);
 
                 if *stat {
                     print_stat(file_contents);

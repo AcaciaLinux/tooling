@@ -22,12 +22,13 @@ Version 0 (`0x00`) continues with the following layout:
 
 | Offset | Count | Description              |
 | :----: | :---: | ------------------------ |
-|   0    |   2   | Object type              |
-|   2    |   2   | Compression type         |
-|   4    |   4   | Dependencies count (`d`) |
-|   8    |   8   | Data length (`b`)        |
-|   16   |  `d`  | Dependencies             |
-| 16+`d` |  `b`  | Data                     |
+|   0    |  32   | Object ID                |
+|   32   |   2   | Object type              |
+|   34   |   2   | Compression type         |
+|   36   |   4   | Dependencies count (`d`) |
+|   40   |   8   | Data length (`b`)        |
+|   48   |  `d`  | Dependencies count       |
+| 48+`?` |  `b`  | Data                     |
 
 ### Object Type
 
@@ -62,5 +63,13 @@ Do note that the compression does not change the object id as it is calculated f
 
 ### Dependencies
 
-The dependencies field is a list of object IDs that list the objects that are needed by this object to work properly.
-Each Object ID takes up `32` bytes, so the length of the `dependencies` field is `32*<Dependencies Count>`.
+The dependencies field lists the objects that this object needs to work properly.
+It does this by concatenating the following things into a long list:
+
+| Offset | Count | Description       |
+| :----: | :---: | ----------------- |
+|   0    |  32   | Object ID         |
+|   32   |   2   | Path length (`p`) |
+|   34   |  `p`  | Path              |
+
+After this structure, the next dependency starts until the dependencies count is reached.

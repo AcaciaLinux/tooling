@@ -53,7 +53,7 @@ Additional data structure:
 |   12   |   4   | Name length             |
 |   16   |       | Name                    |
 
-Pushes `Name` onto `VWD` and tries to change into that directory, creating it using the UNIX information in the struct if it doesn't exist.
+Pushes `Name` onto `VWD` and tries to change into that directory, creating it using the UNIX information in the structure if it doesn't exist.
 
 ## 0x20 - File
 
@@ -61,13 +61,12 @@ Additional data structure:
 
 | Offset | Count | Description             |
 | :----: | :---: | ----------------------- |
-|   0    |   4   | UNIX user id - `uid`    |
-|   4    |   4   | UNIX group id - `gid`   |
-|   8    |   4   | UNIX file mode - `mode` |
-|   12   |   4   | Name length             |
-|   16   |   4   | OID length              |
+|   0    |  32   | Object id `OID`         |
+|   32   |   4   | UNIX user id - `uid`    |
+|   36   |   4   | UNIX group id - `gid`   |
+|   40   |   4   | UNIX file mode - `mode` |
+|   44   |   4   | Name length             |
 |        |       | Name                    |
-|        |       | Object id `OID`         |
 
 Creates a file called `Name` by pushing `Name` onto `VWD` and using that as the path to place the file at. The newly created file uses information from the `UNIX*` fields in this struct and fills its contents with the contents provided by the object `OID`.
 

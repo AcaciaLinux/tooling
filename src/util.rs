@@ -52,3 +52,20 @@ pub trait Unpackable {
         }
     }
 }
+
+/// Represents a enum as a [u16].
+///
+/// Commonly used for the [`IntoU16`](tooling_codegen::IntoU16) macro
+pub trait ReprU16 {
+    /// Returns the `u16` representation of the enum variant at hand
+    fn into_u16(&self) -> u16;
+
+    /// Returs the matching enum variant that is meant for `num`
+    /// # Arguments
+    /// * `num` - The number to derive the enum variant from
+    /// # Returns
+    /// The enum variant or `None` if there is no matching enum variant
+    fn from_u16(num: u16) -> Option<Self>
+    where
+        Self: Sized;
+}

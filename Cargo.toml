@@ -35,6 +35,8 @@ lazy_static = "1.4.0"
 # Feature: mount
 sys-mount = { version = "3.0.1", default-features = false, optional = true }
 
+tooling-codegen = { path = "tooling-codegen" }
+
 curl = { version = "0.4.44", default-features = false, features = [
     "static-ssl",
     "static-curl",

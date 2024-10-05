@@ -1,16 +1,21 @@
 use std::io::{Read, Seek};
 
+use tooling_codegen::IntoU16;
+
 use crate::{
     error::{Error, ErrorExt},
-    util::{Packable, Unpackable},
+    util::{Packable, ReprU16, Unpackable},
 };
 
 /// The types of objects supported
 #[repr(u16)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, IntoU16)]
 pub enum ObjectType {
     /// Any other object
     Other = 0,
+
+    /// An Acacia specific formula object
+    AcaciaFormula = 0x0120,
 }
 
 impl ObjectType {
@@ -26,7 +31,7 @@ impl ObjectType {
 
 impl Packable for ObjectType {
     fn pack<W: std::io::prelude::Write>(&self, output: &mut W) -> Result<(), crate::error::Error> {
-        (*self as u16)
+        self.into_u16()
             .pack(output)
             .e_context(|| format!("Packing ObjectType {:?}", self))
     }
@@ -38,9 +43,6 @@ impl Unpackable for ObjectType {
         Self: Sized,
     {
         let input = u16::try_unpack(input).e_context(|| "Unpacking ObjectType")?;
-        Ok(match input {
-            0 => Some(Self::Other),
-            _ => None,
-        })
+        Ok(Self::from_u16(input))
     }
 }

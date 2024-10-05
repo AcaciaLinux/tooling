@@ -170,7 +170,6 @@ impl Packable for IndexCommand {
             Self::File { info, name, oid } => {
                 info.pack(output).e_context(context)?;
                 (name.len() as u32).pack(output).e_context(context)?;
-                (oid.len() as u32).pack(output).e_context(context)?;
                 output.write(name.as_bytes()).e_context(context)?;
                 output.write(oid.bytes()).e_context(context)?;
             }
@@ -225,7 +224,6 @@ impl Unpackable for IndexCommand {
                 let info = UNIXInfo::try_unpack(input).e_context(context)?;
 
                 let name_len = u32::try_unpack(input).e_context(context)?;
-                let oid_len = u32::try_unpack(input).e_context(context)?;
 
                 let mut buf = vec![0u8; name_len as usize];
                 input.read_exact(&mut buf).e_context(context)?;

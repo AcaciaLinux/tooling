@@ -56,7 +56,7 @@ impl Unpackable for ObjectDependency {
         let oid_len = u32::try_unpack(input).e_context(context)?;
         let path_len = u32::try_unpack(input).e_context(context)?;
 
-        let mut oid = vec![0u8; oid_len as usize];
+        let mut oid = [0u8; 32];
         input.read_exact(&mut oid).e_context(context)?;
         let oid = ObjectID::new(oid);
 

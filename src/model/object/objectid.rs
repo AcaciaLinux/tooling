@@ -16,14 +16,12 @@ use crate::{
 /// Represents an object id (hash)
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct ObjectID {
-    hash: Vec<u8>,
+    hash: [u8; 32],
 }
 
 impl Debug for ObjectID {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ObjectID")
-            .field("hash", &self.to_string())
-            .finish()
+        write!(f, "{}", self.to_string())
     }
 }
 
@@ -31,7 +29,7 @@ impl ObjectID {
     /// Creates a new object id from a hash
     /// # Arguments
     /// * `hash` - The hash to take as a source
-    pub fn new(hash: Vec<u8>) -> Self {
+    pub fn new(hash: [u8; 32]) -> Self {
         Self { hash }
     }
 
@@ -39,7 +37,17 @@ impl ObjectID {
     /// # Arguments
     /// * `hex_string` - The string to decode
     pub fn new_from_hex(hex_string: &str) -> Result<Self, hex::FromHexError> {
-        let hash: Vec<u8> = hex::decode(hex_string)?;
+        let hash_vec: Vec<u8> = hex::decode(hex_string)?;
+
+        if hash_vec.len() < 32 {
+            return Err(FromHexError::InvalidStringLength);
+        }
+
+        let mut hash = [0u8; 32];
+        for i in 0..32 {
+            hash[i] = hash_vec[i];
+        }
+
         Ok(Self::new(hash))
     }
 
@@ -88,7 +96,7 @@ impl ObjectID {
 
 impl From<Output<Sha256>> for ObjectID {
     fn from(value: Output<Sha256>) -> Self {
-        Self::new(value.into_iter().collect())
+        Self { hash: value.into() }
     }
 }
 
@@ -132,17 +140,13 @@ impl Unpackable for ObjectID {
     fn unpack<R: std::io::prelude::Read>(
         input: &mut R,
     ) -> Result<Option<Self>, crate::error::Error> {
-        let mut buf = [0u8; 32];
+        let mut hash = [0u8; 32];
 
-        let len = input.read(&mut buf).e_context(|| "Unpacking Object ID")?;
+        input
+            .read_exact(&mut hash)
+            .e_context(|| "Unpacking Object ID")?;
 
-        if len < buf.len() {
-            Ok(None)
-        } else {
-            Ok(Some(Self {
-                hash: Vec::from(buf),
-            }))
-        }
+        Ok(Some(Self { hash }))
     }
 }
 

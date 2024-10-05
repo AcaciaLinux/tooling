@@ -118,7 +118,7 @@ where
             IndexCommand::File {
                 info,
                 name,
-                oid: ObjectID::new(Vec::new()),
+                oid: ObjectID::new(Default::default()),
             }
         };
 

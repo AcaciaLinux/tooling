@@ -19,7 +19,7 @@ use crate::{
     ODB_DEPTH,
 };
 
-use super::{Home, Object, ObjectCompression, ObjectDB, ObjectID};
+use super::{Home, Object, ObjectCompression, ObjectDB, ObjectDependency, ObjectID, ObjectType};
 
 /// A resolved formula that uniquely describes a package's
 /// build instructions to be stored in the object database.
@@ -149,7 +149,13 @@ impl FormulaFile {
                 true,
             )?;
 
-            let object = object_db.insert_file(&tmp_path, compression, true)?;
+            let object = object_db.insert_file(
+                &tmp_path,
+                ObjectType::Other,
+                compression,
+                true,
+                Vec::new(),
+            )?;
 
             files.insert(dest, object.oid);
         }
@@ -160,7 +166,13 @@ impl FormulaFile {
             if entry.path() != formula_path {
                 results.push((
                     path.to_owned(),
-                    object_db.insert_file(&entry.path(), compression, true),
+                    object_db.insert_file(
+                        &entry.path(),
+                        ObjectType::Other,
+                        compression,
+                        true,
+                        Vec::new(),
+                    ),
                 ));
             } else {
                 trace!(

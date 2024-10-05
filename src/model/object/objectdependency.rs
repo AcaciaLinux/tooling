@@ -52,9 +52,6 @@ impl Unpackable for ObjectDependency {
     ) -> Result<Option<Self>, crate::error::Error> {
         let context = || "Unpacking object dependency";
 
-        let oid_len = u32::try_unpack(input).e_context(context)?;
-        let path_len = u32::try_unpack(input).e_context(context)?;
-
         let mut oid = [0u8; 32];
         input.read_exact(&mut oid).e_context(context)?;
         let oid = ObjectID::new(oid);

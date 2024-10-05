@@ -7,7 +7,7 @@ use std::{collections::HashSet, path::PathBuf};
 
 use crate::{
     error::Error,
-    model::{ObjectCompression, ObjectDB, ObjectID},
+    model::{ObjectCompression, ObjectDB, ObjectID, ObjectType},
     util::fs::{self, IndexCommand},
 };
 
@@ -58,7 +58,13 @@ impl Indexer {
                     ref mut oid,
                 } => {
                     path.push(name);
-                    let object = db.insert_file(&path, compression, skip_duplicates)?;
+                    let object = db.insert_file(
+                        &path,
+                        ObjectType::Other,
+                        compression,
+                        skip_duplicates,
+                        Vec::new(),
+                    )?;
                     *oid = object.oid;
                     objects.insert(oid.clone());
                     path.pop();

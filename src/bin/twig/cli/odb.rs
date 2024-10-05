@@ -3,7 +3,7 @@ use std::{io, path::PathBuf};
 use clap::Parser;
 use tooling::{
     error::{Error, ErrorExt, ErrorType},
-    model::{ObjectDB, ObjectID},
+    model::{ObjectDB, ObjectID, ObjectType},
     util::fs::{file_create, PathUtil},
     ODB_DEPTH,
 };
@@ -82,7 +82,13 @@ impl Command {
                 path,
             } => {
                 let object = odb
-                    .insert_file(path, compression.clone().into(), !force)
+                    .insert_file(
+                        path,
+                        ObjectType::Other,
+                        compression.clone().into(),
+                        !force,
+                        Vec::new(),
+                    )
                     .e_context(|| format!("Putting {} into object database", path.str_lossy()))?;
                 println!("{}", object.oid);
             }

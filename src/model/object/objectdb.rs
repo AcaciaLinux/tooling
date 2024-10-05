@@ -56,8 +56,10 @@ impl ObjectDB {
     /// Inserts a file into the database
     /// # Arguments
     /// * `path` - The path to the file to insert
+    /// * `ty` - The type of object to be inserted
     /// * `compression` - The compression to apply to the data
     /// * `skip_duplicate` - Whether to skip an already existing entry
+    /// * `dependencies` - The dependencies of the object to insert
     /// # Returns
     /// The inserted [Object](super::Object)
     ///
@@ -65,19 +67,23 @@ impl ObjectDB {
     pub fn insert_file(
         &mut self,
         path: &Path,
+        ty: ObjectType,
         compression: ObjectCompression,
         skip_duplicate: bool,
+        dependencies: Vec<ObjectDependency>,
     ) -> Result<Object, Error> {
         let mut src_file = fs::file_open(path)?;
 
-        self.insert_stream(&mut src_file, compression, skip_duplicate)
+        self.insert_stream(&mut src_file, ty, compression, skip_duplicate, dependencies)
     }
 
     /// Insert a new object into the database by reading from a stream
     /// # Arguments
     /// * `input` - The input stream to insert
+    /// * `ty` - The type of object to be inserted
     /// * `compression` - The compression to apply to the data
     /// * `skip_duplicate` - Whether to skip an already existing entry
+    /// * `dependencies` - The dependencies of the object to insert
     /// # Returns
     /// The inserted [Object](super::Object)
     ///
@@ -87,8 +93,10 @@ impl ObjectDB {
     pub fn insert_stream<R: Read + Seek>(
         &mut self,
         input: &mut R,
+        ty: ObjectType,
         compression: ObjectCompression,
         skip_duplicate: bool,
+        mut dependencies: Vec<ObjectDependency>,
     ) -> Result<Object, Error> {
         input
             .seek(SeekFrom::Start(0))
@@ -118,10 +126,8 @@ impl ObjectDB {
 
         let mut dst_file = fs::file_create(&db_path).e_context(|| "Creating object file")?;
 
-        let dependencies =
-            ObjectDependency::infer(input).e_context(|| "Analyzing object dependencies")?;
-
-        let ty = ObjectType::infer(input).e_context(|| "Inferring object type")?;
+        dependencies
+            .extend(ObjectDependency::infer(input).e_context(|| "Analyzing object dependencies")?);
 
         let object = Object {
             oid,
@@ -175,6 +181,8 @@ impl ObjectDB {
 
         let reader = ObjectReader::from_stream(file)
             .e_context(|| format!("Creating object reader for {oid}"))?;
+
+        trace!("Retrieved object {:?}", reader.object);
 
         Ok(Some(reader))
     }

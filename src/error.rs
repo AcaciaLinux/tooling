@@ -12,6 +12,7 @@ use self::{
     assert::AssertionError,
     dependency::DependencyError,
     support::{CURLError, TOMLError},
+    version::VersionError,
 };
 
 pub mod support;
@@ -19,6 +20,7 @@ pub mod support;
 pub mod architecture;
 pub mod assert;
 pub mod dependency;
+pub mod version;
 
 /// The type of error at hand
 #[derive(Debug)]
@@ -35,6 +37,7 @@ pub enum ErrorType {
     FromUTF8(FromUtf8Error),
     XzStream(xz::stream::Error),
     ObjectDB(ObjectDBError),
+    Version(VersionError),
     Other(String),
 }
 
@@ -113,6 +116,7 @@ impl std::fmt::Display for ErrorType {
             Self::FromUTF8(e) => e.fmt(f),
             Self::XzStream(e) => e.fmt(f),
             Self::ObjectDB(e) => e.fmt(f),
+            Self::Version(e) => e.fmt(f),
             Self::Other(e) => write!(f, "{}", e),
         }
     }

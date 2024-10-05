@@ -37,10 +37,9 @@ impl Packable for ObjectDependency {
 
         let context = || format!("Packing object dependency {} @ {}", self.oid, path_str);
 
-        (self.oid.len() as u32).pack(output).e_context(context)?;
-        (path_str.len() as u32).pack(output).e_context(context)?;
-
         self.oid.pack(output).e_context(context)?;
+
+        (path_str.len() as u16).pack(output).e_context(context)?;
         output.write(path_str.as_bytes()).e_context(context)?;
 
         Ok(())
@@ -59,6 +58,8 @@ impl Unpackable for ObjectDependency {
         let mut oid = [0u8; 32];
         input.read_exact(&mut oid).e_context(context)?;
         let oid = ObjectID::new(oid);
+
+        let path_len = u16::try_unpack(input).e_context(context)?;
 
         let mut path = vec![0u8; path_len as usize];
         input.read_exact(&mut path).e_context(context)?;

@@ -65,6 +65,7 @@ pub struct Formula {
 
     /// The files that are shipped with this formula
     /// including the downloaded source files
+    #[serde(skip)]
     pub files: IndexMap<PathBuf, ObjectID>,
 }
 
@@ -223,6 +224,11 @@ impl Formula {
         toml::to_string_pretty(self).expect("Serialize formula file should never fail")
     }
 
+    /// Returns the `JSON` string for this formula
+    pub fn json(&self) -> String {
+        serde_json::to_string(self).expect("Serialize formula file should never fail")
+    }
+
     /// Inserts this formula into `object_db`
     /// # Arguments
     /// * `object_db` - The objet db to insert the formula into
@@ -232,7 +238,24 @@ impl Formula {
         object_db: &mut ObjectDB,
         compression: ObjectCompression,
     ) -> Result<Object, Error> {
-        let mut cursor = Cursor::new(self.toml());
-        object_db.insert_stream(&mut cursor, compression, true)
+        let mut cursor = Cursor::new(self.json());
+
+        let dependencies = self
+            .files
+            .clone()
+            .into_iter()
+            .map(|e| ObjectDependency {
+                oid: e.1,
+                path: e.0,
+            })
+            .collect();
+
+        object_db.insert_stream(
+            &mut cursor,
+            ObjectType::AcaciaFormula,
+            compression,
+            true,
+            dependencies,
+        )
     }
 }

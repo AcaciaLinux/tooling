@@ -26,8 +26,8 @@ pub use objecttype::*;
 pub struct Object {
     /// The unique object ID calculated from the contents
     pub oid: ObjectID,
-    /// All the dependencies of the object and where they should be placed
-    pub dependencies: Vec<ObjectDependency>,
+    /// All the dependencies of the object to aid dependency resolving
+    pub dependencies: Vec<ObjectID>,
     /// The type of object contained inside
     pub ty: ObjectType,
     /// The compression applied to the inner data
@@ -88,11 +88,10 @@ impl Unpackable for Object {
 
         let deps_count = u16::try_unpack(input).e_context(|| "Unpacking dependencies count")?;
 
-        let mut dependencies: Vec<ObjectDependency> = Vec::new();
+        let mut dependencies: Vec<ObjectID> = Vec::new();
 
         for i in 0..deps_count {
-            let dep =
-                ObjectDependency::try_unpack(input).ctx(|| format!("Unpacking dependency {i}"))?;
+            let dep = ObjectID::try_unpack(input).ctx(|| format!("Unpacking dependency {i}"))?;
             dependencies.push(dep);
         }
 

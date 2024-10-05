@@ -17,7 +17,7 @@ use crate::{
     OBJECT_FILE_EXTENSION,
 };
 
-use super::{Object, ObjectCompression, ObjectDependency, ObjectID, ObjectReader, ObjectType};
+use super::{Object, ObjectCompression, ObjectID, ObjectReader, ObjectType};
 
 /// A database for storing AcaciaLinux objects
 pub struct ObjectDB {
@@ -70,7 +70,7 @@ impl ObjectDB {
         ty: ObjectType,
         compression: ObjectCompression,
         skip_duplicate: bool,
-        dependencies: Vec<ObjectDependency>,
+        dependencies: Vec<ObjectID>,
     ) -> Result<Object, Error> {
         let mut src_file = fs::file_open(path)?;
 
@@ -96,7 +96,7 @@ impl ObjectDB {
         ty: ObjectType,
         compression: ObjectCompression,
         skip_duplicate: bool,
-        mut dependencies: Vec<ObjectDependency>,
+        dependencies: Vec<ObjectID>,
     ) -> Result<Object, Error> {
         input
             .seek(SeekFrom::Start(0))
@@ -125,9 +125,6 @@ impl ObjectDB {
         }
 
         let mut dst_file = fs::file_create(&db_path).e_context(|| "Creating object file")?;
-
-        dependencies
-            .extend(ObjectDependency::infer(input).e_context(|| "Analyzing object dependencies")?);
 
         let object = Object {
             oid,

@@ -19,7 +19,7 @@ use crate::{
     ODB_DEPTH,
 };
 
-use super::{Home, Object, ObjectCompression, ObjectDB, ObjectDependency, ObjectID, ObjectType};
+use super::{Home, Object, ObjectCompression, ObjectDB, ObjectID, ObjectType};
 
 /// A resolved formula that uniquely describes a package's
 /// build instructions to be stored in the object database.
@@ -65,7 +65,6 @@ pub struct Formula {
 
     /// The files that are shipped with this formula
     /// including the downloaded source files
-    #[serde(skip)]
     pub files: IndexMap<PathBuf, ObjectID>,
 }
 
@@ -240,15 +239,7 @@ impl Formula {
     ) -> Result<Object, Error> {
         let mut cursor = Cursor::new(self.json());
 
-        let dependencies = self
-            .files
-            .clone()
-            .into_iter()
-            .map(|e| ObjectDependency {
-                oid: e.1,
-                path: e.0,
-            })
-            .collect();
+        let dependencies = self.files.clone().into_iter().map(|e| e.1).collect();
 
         object_db.insert_stream(
             &mut cursor,

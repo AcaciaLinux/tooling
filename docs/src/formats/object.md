@@ -63,13 +63,4 @@ Do note that the compression does not change the object id as it is calculated f
 
 ### Dependencies
 
-The dependencies field lists the objects that this object needs to work properly.
-It does this by concatenating the following things into a long list:
-
-| Offset | Count | Description       |
-| :----: | :---: | ----------------- |
-|   0    |  32   | Object ID         |
-|   32   |   2   | Path length (`p`) |
-|   34   |  `p`  | Path              |
-
-After this structure, the next dependency starts until the dependencies count is reached.
+The dependencies field is a simple array of `32` bit object ids.

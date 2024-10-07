@@ -1,11 +1,11 @@
-use std::{collections::HashMap, path::PathBuf, process::ExitStatus};
+use std::{path::PathBuf, process::ExitStatus};
 
 mod workdir;
 use log::{debug, info};
 pub use workdir::*;
 
 use crate::{
-    env::{executable::CustomExecutable, BuildEnvironment, Environment},
+    env::{BuildEnvironment, Environment, EnvironmentExecutable},
     error::{Error, ErrorExt, ErrorType, Throwable},
     model::{Formula, Home, ObjectDB},
     util::{
@@ -59,12 +59,20 @@ impl<'a> Builder<'a> {
                 .e_context(|| format!("Extracting object {} to {}", oid, path.str_lossy(),))?;
         }
 
+        let buildsteps = self.formula.get_buildsteps(
+            formula_inner_path.clone(),
+            self.workdir.get_install_dir_inner(),
+        );
+
         // Use a separate scope for all functions that
         // need an active environment. This makes sure
         // the environment is dropped and removed once
         // it is no longer needed
         {
-            let lower_dirs = vec![self.workdir.get_formula_dir()];
+            let lower_dirs = vec![
+                self.workdir.get_formula_dir(),
+                PathBuf::from("/home/max/x86_64-cross-toolchain"),
+            ];
 
             let overlay_mount = OverlayMount::new(
                 lower_dirs,
@@ -77,17 +85,19 @@ impl<'a> Builder<'a> {
             let environment = BuildEnvironment::new(Box::new(overlay_mount))
                 .ctx(|| "Creating build environment")?;
 
-            let mut envs = HashMap::new();
-            envs.insert("PKG_NAME".to_owned(), self.formula.name.clone());
-            envs.insert("PKG_VERSION".to_owned(), self.formula.version.clone());
+            let signal_dispatcher = SignalDispatcher::default();
 
-            // For now, we execute 'sh' before implementing the build commands
-            let executable = CustomExecutable::new("sh".to_owned(), formula_inner_path, envs);
-            let dispatcher = SignalDispatcher::default();
+            info!("Build environment is ready - executing buildsteps");
 
-            info!("Build environment is ready - entering chroot");
+            for buildstep in buildsteps {
+                info!("Executing step '{}'...", buildstep.get_name());
 
-            environment.execute(&executable, &dispatcher)?;
+                environment
+                    .execute(&buildstep, &signal_dispatcher)
+                    .ctx(|| format!("Executing '{}' step", buildstep.get_name()))?;
+
+                info!("Executed step '{}'...", buildstep.get_name());
+            }
         }
 
         debug!("Exited from chroot, cleaning up...");

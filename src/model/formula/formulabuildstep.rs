@@ -28,7 +28,11 @@ impl<'a> EnvironmentExecutable for FormulaBuildstep<'a> {
 
         let oid_str = self.formula.oid().to_string();
 
-        let pkg_root_str = dist_dir().join(PathBuf::from(oid_str)).str_lossy();
+        let pkg_root_str = PathBuf::from("/")
+            .join(dist_dir())
+            .join("pkg")
+            .join(PathBuf::from(oid_str))
+            .str_lossy();
         let install_dir_str = self.install_dir.str_lossy();
 
         map.insert("PKG_NAME", &self.formula.name);

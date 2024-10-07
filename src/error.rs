@@ -29,6 +29,7 @@ pub enum ErrorType {
     IO(std::io::Error),
     ELFParse(elf::ParseError),
     TOML(TOMLError),
+    JSON(serde_json::Error),
     #[cfg(feature = "builder")]
     Builder(BuilderError),
     CURL(CURLError),
@@ -120,6 +121,7 @@ impl std::fmt::Display for ErrorType {
             Self::IO(e) => e.fmt(f),
             Self::ELFParse(e) => e.fmt(f),
             Self::TOML(e) => e.fmt(f),
+            Self::JSON(e) => e.fmt(f),
             #[cfg(feature = "builder")]
             Self::Builder(e) => e.fmt(f),
             Self::CURL(e) => e.fmt(f),

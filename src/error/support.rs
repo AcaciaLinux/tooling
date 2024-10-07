@@ -110,6 +110,24 @@ impl Throwable for toml::ser::Error {
     }
 }
 
+impl<T> ErrorExt<T> for Result<T, serde_json::Error> {
+    fn e_context<S: ToString, F: Fn() -> S>(self, context: F) -> Result<T, Error> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => Err(Error::new_context(
+                ErrorType::JSON(e),
+                context().to_string(),
+            )),
+        }
+    }
+}
+
+impl Throwable for serde_json::Error {
+    fn throw(self, context: String) -> Error {
+        Error::new_context(ErrorType::JSON(self), context)
+    }
+}
+
 /// A CURL error
 #[derive(Debug)]
 pub enum CURLError {

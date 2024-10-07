@@ -22,6 +22,8 @@ use crate::{
 
 use super::{Home, Object, ObjectCompression, ObjectDB, ObjectID, ObjectType};
 
+pub mod formulabuildstep;
+
 /// A resolved formula that uniquely describes a package's
 /// build instructions to be stored in the object database.
 #[derive(Deserialize, Serialize, Debug)]

@@ -3,19 +3,20 @@ use log::info;
 use tooling::{
     error::{Error, ErrorExt},
     model::{Formula, ObjectCompression, ObjectDB, ObjectID},
+    tools::builder::Builder,
     ODB_DEPTH,
 };
 
 use super::Cli;
 
-/// The `ingest` command
+/// The `build` command
 #[derive(Parser)]
 pub struct BuildCommand {
     /// The compression to use for inserting the objects
     #[arg(long, short, default_value_t=ObjectCompression::Xz)]
     compression: ObjectCompression,
 
-    /// The file to the formula to be ingested
+    /// The object id of the formula to be built
     formula: ObjectID,
 }
 
@@ -30,7 +31,11 @@ impl BuildCommand {
         let (formula, _object) =
             Formula::from_odb(&self.formula, &object_db).ctx(|| "Recalling formula object")?;
 
-        println!("{:#?}", formula);
+        let home = cli.get_home()?;
+
+        let mut builder = Builder::new(&home, formula, &object_db).ctx(|| "Running the builder")?;
+
+        builder.run()?;
 
         Ok(0)
     }

@@ -1,6 +1,6 @@
 use std::{
     io::{self},
-    path::{Path, PathBuf},
+    path::Path,
     process::Stdio,
     sync::{Arc, Mutex},
     thread,
@@ -33,8 +33,6 @@ pub struct BuildEnvironment {
     root: Box<dyn Mount>,
     /// All the mounts that go into the build root
     mounts: Vec<Box<dyn Mount>>,
-    /// The path to search for the host toolchain to prepend the PATH variable
-    toolchain_dir: PathBuf,
 }
 
 impl BuildEnvironment {
@@ -46,11 +44,7 @@ impl BuildEnvironment {
     /// - `tmpfs (vkfs)`==> `<merged>/run`
     /// # Arguments
     /// * `overlay_mount` - The overlay mount to construct the build environment in
-    /// * `toolchain_dir` - The directory to search for toolchain files (PATH)
-    pub fn new(
-        root_mount: Box<dyn Mount>,
-        toolchain_dir: PathBuf,
-    ) -> Result<BuildEnvironment, Error> {
+    pub fn new(root_mount: Box<dyn Mount>) -> Result<BuildEnvironment, Error> {
         let context = || "Creating build environment";
         let target = root_mount.get_target_path();
 
@@ -75,7 +69,6 @@ impl BuildEnvironment {
                 Box::new(m_sysfs),
                 Box::new(m_tmpfs),
             ],
-            toolchain_dir,
         })
     }
 
@@ -111,15 +104,7 @@ impl Environment for BuildEnvironment {
             .arg("-c")
             .arg(executable.get_command());
 
-        let tc_dir = self.toolchain_dir.to_string_lossy();
-        let path = format!(
-            "/bin:/sbin:/usr/bin:/usr/sbin:{}/bin:{}/sbin",
-            tc_dir, tc_dir
-        );
-
-        command
-            .env("PATH", path)
-            .envs(executable.get_env_variables());
+        command.envs(executable.get_env_variables());
 
         debug!(
             "Running build step '{}', executing command 'chroot' with following arguments:",

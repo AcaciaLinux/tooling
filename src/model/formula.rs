@@ -1,5 +1,5 @@
 use std::{
-    io::Cursor,
+    io::{Cursor, Read},
     path::{Path, PathBuf},
 };
 
@@ -248,5 +248,24 @@ impl Formula {
             true,
             dependencies,
         )
+    }
+
+    /// Retrieves a formula from the object database
+    /// # Arguments
+    /// * `oid` - The object id of the formula to retrieve
+    /// * `odb` - The object database to query for the object
+    /// # Returns
+    /// A tuple of [Formula] and [Object] or an error
+    pub fn from_odb(oid: &ObjectID, odb: &ObjectDB) -> Result<(Self, Object), Error> {
+        let mut object = odb.read(oid).ctx(|| "Retrieving formula object")?;
+
+        let mut string = String::new();
+        object
+            .read_to_string(&mut string)
+            .ctx(|| "Reading formula object")?;
+
+        let formula: Self = serde_json::from_str(&string).ctx(|| "Parsing formula object")?;
+
+        Ok((formula, object.object))
     }
 }

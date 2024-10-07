@@ -11,6 +11,7 @@ use crate::{
     error::{architecture::ArchitectureError, Error, ErrorExt, ErrorType},
     files::formulafile::FormulaFile,
     util::{
+        self,
         architecture::Architecture,
         download::download_to_file,
         fs::{self, PathUtil},
@@ -226,6 +227,14 @@ impl Formula {
     /// Returns the `JSON` string for this formula
     pub fn json(&self) -> String {
         serde_json::to_string(self).expect("Serialize formula file should never fail")
+    }
+
+    /// Returns the object id for this formula
+    ///
+    /// Gets calculated by converting this to its JSON
+    /// representation and hashing it
+    pub fn oid(&self) -> ObjectID {
+        util::hash::hash_string(&self.json()).into()
     }
 
     /// Inserts this formula into `object_db`

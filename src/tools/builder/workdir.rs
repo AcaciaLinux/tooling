@@ -97,6 +97,13 @@ impl BuilderWorkdir {
         self.get_overlay_dir_merged().join(&*PATH_INSTALL_DIR)
     }
 
+    /// The path to the install dir relative to the `upper` overlay directory
+    ///
+    /// `<overlay_dir_upper>/<PATH_INSTALL_DIR>`
+    pub fn get_install_dir_upper(&self) -> PathBuf {
+        self.get_overlay_dir_upper().join(&*PATH_INSTALL_DIR)
+    }
+
     /// The directory to place the finished artifact's output files in
     ///
     /// `<root>/out`

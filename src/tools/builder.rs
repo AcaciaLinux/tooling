@@ -1,7 +1,7 @@
 use std::{path::PathBuf, process::ExitStatus};
 
 mod workdir;
-use log::{debug, info};
+use log::{debug, error, info};
 pub use workdir::*;
 
 use crate::{
@@ -38,7 +38,7 @@ impl<'a> Builder<'a> {
         })
     }
 
-    pub fn run(&mut self) -> Result<(), Error> {
+    pub fn run(&mut self, signal_dispatcher: &SignalDispatcher) -> Result<(), Error> {
         let formula_oid = self.formula.oid();
         let formula_inner_path = PathBuf::from(formula_oid.to_string());
 
@@ -85,16 +85,26 @@ impl<'a> Builder<'a> {
             let environment = BuildEnvironment::new(Box::new(overlay_mount))
                 .ctx(|| "Creating build environment")?;
 
-            let signal_dispatcher = SignalDispatcher::default();
-
             info!("Build environment is ready - executing buildsteps");
 
             for buildstep in buildsteps {
                 info!("Executing step '{}'...", buildstep.get_name());
 
-                environment
-                    .execute(&buildstep, &signal_dispatcher)
+                let status = environment
+                    .execute(&buildstep, signal_dispatcher)
                     .ctx(|| format!("Executing '{}' step", buildstep.get_name()))?;
+
+                if !status.success() {
+                    error!(
+                        "Build step '{}' failed with exit code {}",
+                        buildstep.get_name(),
+                        status
+                    );
+                    return Err(Error::new_context(
+                        BuilderError::CommandFailed { status }.into(),
+                        format!("Executing build step '{}'", buildstep.get_name()),
+                    ));
+                }
 
                 info!("Executed step '{}'...", buildstep.get_name());
             }
@@ -136,6 +146,12 @@ impl<T> ErrorExt<T> for Result<T, BuilderError> {
 impl Throwable for BuilderError {
     fn throw(self, context: String) -> Error {
         Error::new_context(ErrorType::Builder(self), context)
+    }
+}
+
+impl From<BuilderError> for ErrorType {
+    fn from(value: BuilderError) -> Self {
+        ErrorType::Builder(value)
     }
 }
 

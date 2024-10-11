@@ -1,9 +1,12 @@
+use std::sync::Arc;
+
 use clap::Parser;
 use log::info;
 use tooling::{
     error::{Error, ErrorExt},
     model::{Formula, ObjectCompression, ObjectDB, ObjectID},
     tools::builder::Builder,
+    util::signal::SignalDispatcher,
     ODB_DEPTH,
 };
 
@@ -32,10 +35,21 @@ impl BuildCommand {
             Formula::from_odb(&self.formula, &object_db).ctx(|| "Recalling formula object")?;
 
         let home = cli.get_home()?;
+        let formula_name = formula.name.clone();
 
         let mut builder = Builder::new(&home, formula, &object_db).ctx(|| "Running the builder")?;
 
-        builder.run()?;
+        let signal_dispatcher = Arc::new(SignalDispatcher::default());
+
+        let sd_clone = signal_dispatcher.clone();
+        ctrlc::set_handler(move || {
+            sd_clone.handle();
+        })
+        .expect("Attach signal handler");
+
+        builder
+            .run(&signal_dispatcher)
+            .ctx(|| format!("Building formula '{formula_name}'"))?;
 
         Ok(0)
     }

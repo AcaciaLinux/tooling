@@ -32,6 +32,7 @@ impl<'a> EnvironmentExecutable for FormulaBuildstep<'a> {
             .join(dist_dir())
             .join("pkg")
             .join(PathBuf::from(oid_str))
+            .join("root")
             .str_lossy();
         let install_dir_str = self.install_dir.str_lossy();
 

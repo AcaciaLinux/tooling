@@ -1,13 +1,15 @@
-use std::{path::PathBuf, process::ExitStatus};
+use std::{collections::HashMap, path::PathBuf, process::ExitStatus};
 
 mod workdir;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 pub use workdir::*;
 
 use crate::{
+    dist_dir,
     env::{BuildEnvironment, Environment, EnvironmentExecutable},
     error::{Error, ErrorExt, ErrorType, Throwable},
-    model::{Formula, Home, ObjectDB},
+    model::{Formula, Home, Object, ObjectCompression, ObjectDB},
+    tools::indexer::Indexer,
     util::{
         fs::{self, create_dir_all, PathUtil},
         mount::OverlayMount,
@@ -18,7 +20,9 @@ use crate::{
 pub struct Builder<'a> {
     workdir: BuilderWorkdir,
     formula: Formula,
-    object_db: &'a ObjectDB,
+    object_db: &'a mut ObjectDB,
+    env_vars: HashMap<String, String>,
+    lower_dirs: Vec<PathBuf>,
 }
 
 impl<'a> Builder<'a> {
@@ -30,15 +34,53 @@ impl<'a> Builder<'a> {
     /// * `object_db` - The object database to use for retrieving and storing objects
     /// # Returns
     /// An instance of the builder tool to be used for building the formula
-    pub fn new(home: &Home, formula: Formula, object_db: &'a ObjectDB) -> Result<Self, Error> {
+    pub fn new(home: &Home, formula: Formula, object_db: &'a mut ObjectDB) -> Result<Self, Error> {
         Ok(Self {
             workdir: BuilderWorkdir::new(home)?,
             formula,
             object_db,
+            env_vars: HashMap::new(),
+            lower_dirs: Vec::new(),
         })
     }
 
-    pub fn run(&mut self, signal_dispatcher: &SignalDispatcher) -> Result<(), Error> {
+    /// Adds a new environment variable to the default variables
+    /// # Arguments
+    /// * `key` - The key (name) of the variable
+    /// * `value` - The value of the variable
+    pub fn add_env_var(&mut self, key: String, value: String) {
+        self.env_vars.insert(key, value);
+    }
+
+    /// Adds a hashmap of environment variables to the default variables
+    /// # Arguments
+    /// * `envs` - The hashmap to extend the internal with
+    pub fn add_env_vars(&mut self, envs: HashMap<String, String>) {
+        self.env_vars.extend(envs);
+    }
+
+    /// Adds an additional lower directory to the list
+    /// of mounts
+    /// # Arguments
+    /// * `dir` - The directory to mount
+    pub fn add_lower_dir(&mut self, dir: PathBuf) {
+        self.lower_dirs.push(dir);
+    }
+
+    /// Adds additional lower directories to the list
+    /// of mounts
+    /// # Arguments
+    /// * `dirs` - The directories to mount
+    pub fn add_lower_dirs(&mut self, dirs: Vec<PathBuf>) {
+        self.lower_dirs.extend(dirs);
+    }
+
+    pub fn run(
+        &mut self,
+        signal_dispatcher: &SignalDispatcher,
+        compression: ObjectCompression,
+        skip_duplicates: bool,
+    ) -> Result<Object, Error> {
         let formula_oid = self.formula.oid();
         let formula_inner_path = PathBuf::from(formula_oid.to_string());
 
@@ -64,15 +106,15 @@ impl<'a> Builder<'a> {
             self.workdir.get_install_dir_inner(),
         );
 
+        let tainted = !(self.env_vars.is_empty() & self.lower_dirs.is_empty());
+
         // Use a separate scope for all functions that
         // need an active environment. This makes sure
         // the environment is dropped and removed once
         // it is no longer needed
         {
-            let lower_dirs = vec![
-                self.workdir.get_formula_dir(),
-                PathBuf::from("/home/max/x86_64-cross-toolchain"),
-            ];
+            let mut lower_dirs = vec![self.workdir.get_formula_dir()];
+            lower_dirs.extend(self.lower_dirs.clone());
 
             let overlay_mount = OverlayMount::new(
                 lower_dirs,
@@ -82,8 +124,10 @@ impl<'a> Builder<'a> {
             )
             .ctx(|| "Creating overlay mount")?;
 
-            let environment = BuildEnvironment::new(Box::new(overlay_mount))
+            let mut environment = BuildEnvironment::new(Box::new(overlay_mount))
                 .ctx(|| "Creating build environment")?;
+
+            environment.add_envs(self.env_vars.clone());
 
             info!("Build environment is ready - executing buildsteps");
 
@@ -113,7 +157,28 @@ impl<'a> Builder<'a> {
         debug!("Exited from chroot, cleaning up...");
         fs::remove_dir_all(&formula_root)?;
 
-        Ok(())
+        let indexer = Indexer::new(
+            self.workdir
+                .get_install_dir_upper()
+                .join(dist_dir())
+                .join("pkg")
+                .join(formula_oid.to_string())
+                .join("root"),
+        );
+
+        let index = indexer
+            .run(true, &mut self.object_db, compression, skip_duplicates)
+            .ctx(|| "Indexing finished package")?;
+
+        let indexfile = index.to_index_file();
+
+        let object = indexfile.insert(&mut self.object_db, compression)?;
+
+        if tainted {
+            warn!("This build is TAINTED!");
+        }
+
+        Ok(object)
     }
 }
 

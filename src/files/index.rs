@@ -1,7 +1,7 @@
 //! Data structures for representing and storing the AcaciaLinux index files
 
 use std::{
-    io::{ErrorKind, Read, Write},
+    io::{Cursor, ErrorKind, Read, Write},
     path::{Path, PathBuf},
 };
 
@@ -9,7 +9,7 @@ use log::debug;
 
 use crate::{
     error::{Error, ErrorExt},
-    model::ObjectDB,
+    model::{Object, ObjectCompression, ObjectDB, ObjectType},
     util::{fs::IndexCommand, Packable, Unpackable},
 };
 
@@ -65,6 +65,30 @@ impl IndexFile {
         })?;
 
         Ok(())
+    }
+
+    /// Inserts this index into `object_db`
+    /// # Arguments
+    /// * `object_db` - The objet db to insert the formula into
+    /// * `compression` - The compression to apply for inserting
+    pub fn insert(
+        &self,
+        object_db: &mut ObjectDB,
+        compression: ObjectCompression,
+    ) -> Result<Object, Error> {
+        let mut buf = Vec::new();
+
+        self.pack(&mut buf)?;
+
+        let mut cursor = Cursor::new(buf);
+
+        object_db.insert_stream(
+            &mut cursor,
+            ObjectType::AcaciaIndex,
+            compression,
+            true,
+            Vec::new(),
+        )
     }
 }
 

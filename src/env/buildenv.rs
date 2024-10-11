@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     io::{self},
     path::Path,
     process::Stdio,
@@ -33,6 +34,8 @@ pub struct BuildEnvironment {
     root: Box<dyn Mount>,
     /// All the mounts that go into the build root
     mounts: Vec<Box<dyn Mount>>,
+    /// The initial environment variables
+    env_vars: HashMap<String, String>,
 }
 
 impl BuildEnvironment {
@@ -69,6 +72,7 @@ impl BuildEnvironment {
                 Box::new(m_sysfs),
                 Box::new(m_tmpfs),
             ],
+            env_vars: HashMap::new(),
         })
     }
 
@@ -82,6 +86,21 @@ impl BuildEnvironment {
     /// Returns a reference to the `OverlayMount` used for the build environment
     pub fn get_root_mount(&self) -> &dyn Mount {
         self.root.as_ref()
+    }
+
+    /// Adds a new environment variable to the default variables
+    /// # Arguments
+    /// * `key` - The key (name) of the variable
+    /// * `value` - The value of the variable
+    pub fn add_env(&mut self, key: String, value: String) {
+        self.env_vars.insert(key, value);
+    }
+
+    /// Adds a hashmap of environment variables to the default variables
+    /// # Arguments
+    /// * `envs` - The hashmap to extend the internal with
+    pub fn add_envs(&mut self, envs: HashMap<String, String>) {
+        self.env_vars.extend(envs);
     }
 }
 
@@ -104,7 +123,9 @@ impl Environment for BuildEnvironment {
             .arg("-c")
             .arg(executable.get_command());
 
-        command.envs(executable.get_env_variables());
+        command
+            .envs(&self.env_vars)
+            .envs(executable.get_env_variables());
 
         debug!(
             "Running build step '{}', executing command 'chroot' with following arguments:",

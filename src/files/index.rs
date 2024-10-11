@@ -9,7 +9,7 @@ use log::debug;
 
 use crate::{
     error::{Error, ErrorExt},
-    model::{Object, ObjectCompression, ObjectDB, ObjectType},
+    model::{Object, ObjectCompression, ObjectDB, ObjectID, ObjectType},
     util::{fs::IndexCommand, Packable, Unpackable},
 };
 
@@ -67,6 +67,24 @@ impl IndexFile {
         Ok(())
     }
 
+    /// Returns a vector of all objects used by this index file
+    pub fn get_objects(&self) -> Vec<ObjectID> {
+        let mut res = Vec::new();
+
+        for cmd in &self.commands {
+            if let IndexCommand::File {
+                info: _,
+                name: _,
+                oid,
+            } = cmd
+            {
+                res.push(oid.clone())
+            }
+        }
+
+        res
+    }
+
     /// Inserts this index into `object_db`
     /// # Arguments
     /// * `object_db` - The objet db to insert the formula into
@@ -87,7 +105,7 @@ impl IndexFile {
             ObjectType::AcaciaIndex,
             compression,
             true,
-            Vec::new(),
+            self.get_objects(),
         )
     }
 }

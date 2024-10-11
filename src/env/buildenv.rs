@@ -153,13 +153,22 @@ impl Environment for BuildEnvironment {
             let _redirect_thread = s.spawn(|| {
                 let mut stderr = io::stderr().lock();
 
-                io::copy(&mut child_stdout, &mut stderr).expect("Redirect stderr");
+                if let Err(e) = io::copy(&mut child_stdout, &mut stderr) {
+                    error!("Failed to redirect child stdout: {e}")
+                };
             });
 
             // Loop until the child exits
             loop {
                 // Lock the mutex to query
-                let mut child = process_arc.lock().expect("Lock mutex");
+
+                let mut child = match process_arc.lock() {
+                    Ok(m) => m,
+                    Err(e) => {
+                        error!("Failed to lock process arc: {e}");
+                        continue;
+                    }
+                };
 
                 // If the child has exited, exit here, too
                 if let Some(res) = child

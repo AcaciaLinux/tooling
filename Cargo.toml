@@ -10,6 +10,8 @@ builder = ["mount"]
 
 mount = ["dep:sys-mount"]
 
+trunk = ["dep:axum"]
+
 [[bin]]
 name = "twig"
 path = "src/bin/twig/twig.rs"
@@ -18,6 +20,10 @@ path = "src/bin/twig/twig.rs"
 name = "branch"
 path = "src/bin/branch/branch.rs"
 
+[[bin]]
+name = "trunk"
+path = "src/bin/trunk/main.rs"
+required-features = ["trunk"]
 
 [dependencies]
 clap = { version = "4.4.8", features = ["derive"] }
@@ -34,6 +40,9 @@ lazy_static = "1.4.0"
 
 # Feature: mount
 sys-mount = { version = "3.0.1", default-features = false, optional = true }
+
+# Feature: trunk
+axum = { version = "0.7.7", default-features = false, optional = true }
 
 tooling-codegen = { path = "tooling-codegen" }
 

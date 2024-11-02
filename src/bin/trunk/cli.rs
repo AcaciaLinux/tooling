@@ -1,4 +1,4 @@
-use std::{io::Read, path::PathBuf, str::FromStr, sync::Arc};
+use std::{io::Read, path::PathBuf, sync::Arc};
 
 use axum::{
     extract::{Path, State},
@@ -12,6 +12,8 @@ use tooling::{
     model::{Home, ObjectDB, ObjectID},
     ODB_DEPTH,
 };
+
+use log::error;
 
 /// The AcaciaLinux server
 #[derive(Parser)]
@@ -82,7 +84,23 @@ async fn get_object(
     Path(path): Path<String>,
     State(odb): State<Arc<ObjectDB>>,
 ) -> (StatusCode, Vec<u8>) {
-    match odb.try_read(&ObjectID::from_str(&path).unwrap()).unwrap() {
+    let oid = match ObjectID::new_from_hex(&path) {
+        Ok(oid) => oid,
+        Err(error) => {
+            error!("Object ID failed to parse: {error}");
+            return (StatusCode::NOT_ACCEPTABLE, Vec::new());
+        }
+    };
+
+    let object = match odb.try_read(&oid) {
+        Ok(object) => object,
+        Err(error) => {
+            error!("Failed to get object: {error}");
+            return (StatusCode::INTERNAL_SERVER_ERROR, Vec::new());
+        }
+    };
+
+    match object {
         None => (StatusCode::NOT_FOUND, Vec::new()),
         Some(mut d) => {
             let mut all = Vec::new();

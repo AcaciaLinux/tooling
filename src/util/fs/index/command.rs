@@ -15,69 +15,6 @@ use crate::{
 
 use super::IndexCommandType;
 
-impl Packable for u8 {
-    fn pack<W: Write>(&self, output: &mut W) -> Result<(), Error> {
-        output
-            .write(&[*self])
-            .e_context(|| format!("Writing {self}"))?;
-
-        Ok(())
-    }
-}
-
-impl Unpackable for u8 {
-    fn unpack<R: Read>(input: &mut R) -> Result<Option<Self>, Error> {
-        let mut buf = [0u8; 1];
-        let x = input.read(&mut buf).e_context(|| "Read u8".to_owned())?;
-        Ok(match x {
-            1 => Some(buf[0]),
-            _ => None,
-        })
-    }
-}
-
-impl Packable for u16 {
-    fn pack<W: Write>(&self, output: &mut W) -> Result<(), Error> {
-        output
-            .write(&self.to_le_bytes())
-            .e_context(|| format!("Writing {self}"))?;
-
-        Ok(())
-    }
-}
-
-impl Unpackable for u16 {
-    fn unpack<R: Read>(input: &mut R) -> Result<Option<Self>, Error> {
-        let mut buf = [0u8; 2];
-        let x = input.read(&mut buf).e_context(|| "Read u16".to_owned())?;
-        Ok(match x {
-            2 => Some(Self::from_le_bytes(buf)),
-            _ => None,
-        })
-    }
-}
-
-impl Packable for u32 {
-    fn pack<W: Write>(&self, output: &mut W) -> Result<(), Error> {
-        output
-            .write(&self.to_le_bytes())
-            .e_context(|| format!("Writing {self}"))?;
-
-        Ok(())
-    }
-}
-
-impl Unpackable for u32 {
-    fn unpack<R: Read>(input: &mut R) -> Result<Option<Self>, Error> {
-        let mut buf = [0u8; 4];
-        let x = input.read(&mut buf).e_context(|| "Read u32".to_owned())?;
-        Ok(match x {
-            4 => Some(Self::from_le_bytes(buf)),
-            _ => None,
-        })
-    }
-}
-
 /// Commands that describe how to walk a filesystem index
 #[derive(Debug)]
 #[repr(u8)]

@@ -4,7 +4,7 @@ pub mod treecommand;
 pub use treecommand::*;
 
 use std::{
-    io::{ErrorKind, Read, Write},
+    io::{Cursor, ErrorKind, Read, Write},
     path::{Path, PathBuf},
 };
 
@@ -13,7 +13,10 @@ use log::debug;
 use crate::{
     error::{Error, ErrorExt},
     model::ObjectDB,
-    util::{Packable, Unpackable},
+    util::{
+        fs::{PathUtil, UNIXInfo},
+        Packable, Unpackable,
+    },
 };
 
 use super::{Object, ObjectCompression, ObjectID, ObjectType};
@@ -25,7 +28,7 @@ pub static CURRENT_VERSION: u8 = 0;
 #[derive(Debug)]
 pub struct Tree {
     /// The commands listed in the file
-    pub commands: Vec<TreeCommand>,
+    commands: Vec<TreeCommand>,
 }
 
 impl Tree {
@@ -111,22 +114,73 @@ impl Tree {
                 break;
             }
 
-            match command {
-                TreeCommand::Subtree {
-                    info: _,
-                    name: _,
-                    oid,
-                } => {
-                    let mut obj = odb.read(oid)?;
-                    let tree = Tree::try_unpack(&mut obj)?;
+            if let TreeCommand::Subtree {
+                info: _,
+                name: _,
+                oid,
+            } = command
+            {
+                let mut obj = odb.read(oid)?;
+                let tree = Tree::try_unpack(&mut obj)?;
 
-                    tree.walk(function, odb)?;
-                }
-                _ => {}
+                tree.walk(function, odb)?;
             }
         }
 
         Ok(())
+    }
+
+    /// Returns the dependencies this tree uses with no recursion
+    pub fn get_dependencies(&self) -> Vec<ObjectID> {
+        let mut dependencies = Vec::new();
+
+        for command in &self.commands {
+            match command {
+                TreeCommand::File {
+                    info: _,
+                    name: _,
+                    oid,
+                } => dependencies.push(oid.clone()),
+                TreeCommand::Symlink {
+                    info: _,
+                    name: _,
+                    destination: _,
+                } => {}
+                TreeCommand::Subtree {
+                    info: _,
+                    name: _,
+                    oid,
+                } => dependencies.push(oid.clone()),
+            }
+        }
+
+        dependencies
+    }
+
+    /// Inserts `self` into the object database
+    /// # Arguments
+    /// * `db` - The object database to insert into
+    /// * `compression` - The form of compression to use when inserting
+    /// * `skip_duplicates` - Whether to skip already existing entries or overwrite them
+    /// # Returns
+    /// The inserted [Object]
+    pub fn insert(
+        &self,
+        db: &mut ObjectDB,
+        compression: ObjectCompression,
+        skip_duplicates: bool,
+    ) -> Result<Object, Error> {
+        let mut buf = Vec::new();
+        self.pack(&mut buf)?;
+        let mut buf = Cursor::new(buf);
+
+        db.insert_stream(
+            &mut buf,
+            ObjectType::AcaciaTree,
+            compression,
+            skip_duplicates,
+            self.get_dependencies(),
+        )
     }
 
     /// Deploys this index to `root`
@@ -141,7 +195,7 @@ impl Tree {
 
                 Ok(true)
             },
-            &db,
+            db,
         )?;
 
         Ok(())

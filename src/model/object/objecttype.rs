@@ -19,6 +19,9 @@ pub enum ObjectType {
 
     /// An Acacia specific index object
     AcaciaIndex = 0x0140,
+
+    /// An Acacia specific tree object
+    AcaciaTree = 0x0150,
 }
 
 impl ObjectType {

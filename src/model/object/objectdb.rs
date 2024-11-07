@@ -53,6 +53,33 @@ impl ObjectDB {
         self.depth
     }
 
+    /// Inserts a file and tries to infer its type and dependencies (TODO)
+    ///
+    /// Currently, this function does a normal [insert_file()](ObjectDB::insert_file())
+    /// using the [Other](ObjectType::Other) object type and no dependencies
+    /// # Arguments
+    /// * `path` - The path to the file to be inserted
+    /// * `compression` - The compression to use on this file
+    /// * `skip_duplicate` - Whether to skip an already existing entry
+    /// # Returns
+    /// The inserted [Object](super::Object)
+    ///
+    /// This will hash the file, analyze its type and dependencies and copy it into the database
+    pub fn insert_file_infer(
+        &mut self,
+        path: &Path,
+        compression: ObjectCompression,
+        skip_duplicate: bool,
+    ) -> Result<Object, Error> {
+        self.insert_file(
+            path,
+            ObjectType::Other,
+            compression,
+            skip_duplicate,
+            Vec::new(),
+        )
+    }
+
     /// Inserts a file into the database
     /// # Arguments
     /// * `path` - The path to the file to insert

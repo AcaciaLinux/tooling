@@ -218,13 +218,13 @@ impl Packable for TreeCommand {
 impl Display for TreeCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::File { info: _, name, oid } => write!(f, "FILE {oid} => {name}"),
+            Self::File { info: _, name, oid } => write!(f, "FILE [{oid}] => {name}"),
             Self::Symlink {
                 info: _,
                 name,
                 destination,
-            } => write!(f, "SYM {name} => {destination}"),
-            Self::Subtree { info: _, name, oid } => write!(f, "CD {name} [{oid}]"),
+            } => write!(f, "LINK {name} => {destination}"),
+            Self::Subtree { info: _, name, oid } => write!(f, "TREE [{oid}] => {name}"),
         }
     }
 }

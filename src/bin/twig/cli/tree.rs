@@ -4,7 +4,7 @@ use clap::Parser;
 use tooling::{
     error::{Error, ErrorExt},
     model::{ObjectDB, ObjectID, Tree},
-    util::{fs::PathUtil, Unpackable},
+    util::{fs::PathUtil, ODBUnpackable},
     ODB_DEPTH,
 };
 
@@ -75,13 +75,18 @@ impl Command {
                 let tree =
                     Tree::index(path, &mut db, compression.clone().into(), *force).ctx(context)?;
 
+                let tree_object = tree
+                    .insert_into_odb(&mut db, compression.clone().into(), *force)
+                    .ctx(|| "Inserting the tree")
+                    .ctx(context)?;
+
                 if *stat {
-                    for cmd in tree.0.commands {
+                    for cmd in &tree.entries {
                         println!("{cmd}");
                     }
                 }
 
-                println!("{}", tree.1.oid);
+                println!("{}", tree_object.oid);
             }
             Command::Deploy { tree, root } => {
                 let db = ObjectDB::init(cli.get_home()?.object_db_path(), ODB_DEPTH)
@@ -89,7 +94,8 @@ impl Command {
 
                 let mut tree_object = db.read(tree).ctx(|| "Opening tree object")?;
 
-                let tree = Tree::try_unpack(&mut tree_object).ctx(|| "Reading tree object")?;
+                let tree =
+                    Tree::unpack_from_odb(&mut tree_object, &db).ctx(|| "Reading tree object")?;
                 tree.deploy(root, &db).ctx(|| "Deploying tree")?;
             }
             Command::List { oid } => {
@@ -97,9 +103,10 @@ impl Command {
                     .ctx(|| "Opening object database")?;
 
                 let mut object = db.read(oid).ctx(|| "Reading tree object")?;
-                let tree = Tree::try_unpack(&mut object).ctx(|| "Reading object contents")?;
+                let tree =
+                    Tree::unpack_from_odb(&mut object, &db).ctx(|| "Reading object contents")?;
 
-                for cmd in tree.commands {
+                for cmd in tree.entries {
                     println!("{cmd}");
                 }
             }

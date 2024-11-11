@@ -11,14 +11,14 @@ use crate::{
     model::{ObjectDB, ObjectID},
     util::{
         fs::{self, PathUtil, UNIXInfo},
-        Packable, Unpackable,
+        ODBUnpackable, Packable, Unpackable,
     },
 };
 
 use super::Tree;
 
-#[derive(Debug)]
-pub enum TreeCommand {
+#[derive(Debug, PartialEq, Eq)]
+pub enum TreeEntry {
     File {
         /// UNIX information about the file
         info: UNIXInfo,
@@ -41,10 +41,10 @@ pub enum TreeCommand {
         /// The name of the tree in the current directory
         name: String,
         /// The object ID of the tree to place
-        oid: ObjectID,
+        tree: Tree,
     },
 }
-impl TreeCommand {
+impl TreeEntry {
     /// Executes this index command in `path`
     /// # Arguments
     /// * `path` - The working directory to execute the command in
@@ -78,13 +78,13 @@ impl TreeCommand {
                     .e_context(|| format!("Applying UNIX info to {}", path.str_lossy()))?;
             }
 
-            Self::Subtree { info, name, oid } => {
-                let mut object = db.read(oid).ctx(|| "Retrieving object")?;
+            Self::Subtree { info, name, tree } => {
+                //let mut object = db.read(oid).ctx(|| "Retrieving object")?;
 
-                let tree = Tree::try_unpack(&mut object).ctx(|| "Unpacking subtree")?;
+                //let tree = Tree::try_unpack(&mut object).ctx(|| "Unpacking subtree")?;
 
                 let path = path.join(name);
-                trace!("Placing subtree {oid} @ {}", path.str_lossy());
+                trace!("Placing subtree @ {}", path.str_lossy());
                 fs::create_dir_all(&path)?;
 
                 info.apply_path(&path)
@@ -96,10 +96,42 @@ impl TreeCommand {
 
         Ok(())
     }
+
+    pub fn name(&self) -> &str {
+        match self {
+            TreeEntry::File {
+                info: _,
+                name,
+                oid: _,
+            } => name,
+            TreeEntry::Symlink {
+                info: _,
+                name,
+                destination: _,
+            } => name,
+            TreeEntry::Subtree {
+                info: _,
+                name,
+                tree: _,
+            } => name,
+        }
+    }
 }
 
-impl Unpackable for TreeCommand {
-    fn unpack<R: Read>(input: &mut R) -> Result<Option<Self>, Error> {
+impl PartialOrd for TreeEntry {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.name().partial_cmp(other.name())
+    }
+}
+
+impl Ord for TreeEntry {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.name().cmp(other.name())
+    }
+}
+
+impl ODBUnpackable for TreeEntry {
+    fn try_unpack_from_odb<R: Read>(input: &mut R, odb: &ObjectDB) -> Result<Option<Self>, Error> {
         let context = || "Reading tree command";
         let ty = match u8::unpack(input).e_context(context)? {
             Some(ty) => ty,
@@ -119,7 +151,11 @@ impl Unpackable for TreeCommand {
                 let mut buf = vec![0u8; name_len as usize];
                 input.read_exact(&mut buf).e_context(context)?;
                 let name = String::from_utf8(buf).e_context(context)?;
-                TreeCommand::Subtree { info, name, oid }
+
+                let mut object = odb.read(&oid)?;
+                let tree = Tree::unpack_from_odb(&mut object, odb)?;
+
+                TreeEntry::Subtree { info, name, tree }
             }
 
             0x1 => {
@@ -134,7 +170,7 @@ impl Unpackable for TreeCommand {
                 input.read_exact(&mut buf).e_context(context)?;
                 let name = String::from_utf8(buf).e_context(context)?;
 
-                TreeCommand::File { info, name, oid }
+                TreeEntry::File { info, name, oid }
             }
 
             0x2 => {
@@ -150,7 +186,7 @@ impl Unpackable for TreeCommand {
                 let mut destination = vec![0u8; dest_len as usize];
                 input.read_exact(&mut destination).e_context(context)?;
                 let destination = String::from_utf8(destination).e_context(context)?;
-                TreeCommand::Symlink {
+                TreeEntry::Symlink {
                     info,
                     name,
                     destination,
@@ -166,7 +202,7 @@ impl Unpackable for TreeCommand {
         }))
     }
 }
-impl Packable for TreeCommand {
+impl Packable for TreeEntry {
     fn pack<W: std::io::Write>(&self, output: &mut W) -> Result<(), crate::error::Error> {
         let context = || format!("Writing index command {:?}", self);
 
@@ -184,7 +220,7 @@ impl Packable for TreeCommand {
             Self::Subtree {
                 info: _,
                 name: _,
-                oid: _,
+                tree: _,
             } => 0x5u8,
         };
         output.write(&[ty]).e_context(context)?;
@@ -208,7 +244,8 @@ impl Packable for TreeCommand {
                 output.write(name.as_bytes()).e_context(context)?;
                 output.write(destination.as_bytes()).e_context(context)?;
             }
-            Self::Subtree { info, name, oid } => {
+            Self::Subtree { info, name, tree } => {
+                let oid = tree.oid();
                 oid.pack(output).ctx(context)?;
                 info.pack(output).ctx(context)?;
                 (name.len() as u32).pack(output).e_context(context)?;
@@ -220,7 +257,7 @@ impl Packable for TreeCommand {
     }
 }
 
-impl Display for TreeCommand {
+impl Display for TreeEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::File { info: _, name, oid } => write!(f, "FILE [{oid}] => {name}"),
@@ -229,7 +266,11 @@ impl Display for TreeCommand {
                 name,
                 destination,
             } => write!(f, "LINK {name} => {destination}"),
-            Self::Subtree { info: _, name, oid } => write!(f, "TREE [{oid}] => {name}"),
+            Self::Subtree {
+                info: _,
+                name,
+                tree,
+            } => write!(f, "TREE [{}] => {name}", tree.oid()),
         }
     }
 }

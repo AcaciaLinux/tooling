@@ -3,6 +3,7 @@
 pub mod treecommand;
 pub use treecommand::*;
 
+use core::panic;
 use std::{
     io::{Cursor, ErrorKind, Read, Write},
     path::{Path, PathBuf},
@@ -16,7 +17,8 @@ use crate::{
     util::{
         self,
         fs::{PathUtil, UNIXInfo},
-        Packable, Unpackable,
+        hash::hash_stream,
+        ODBUnpackable, Packable,
     },
 };
 
@@ -26,29 +28,29 @@ use super::{Object, ObjectCompression, ObjectID, ObjectType};
 pub static CURRENT_VERSION: u8 = 0;
 
 /// The representing structure for the index file
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Tree {
-    /// The commands listed in the file
-    commands: Vec<TreeCommand>,
+    /// The entries listed in the tree
+    pub entries: Vec<TreeEntry>,
 }
 
 impl Tree {
     /// Creates a new tree by recursively indexing `root` and creating subtrees along the way.
-    /// This also inserts the created tree and all objects into the object database.
     /// # Arguments
     /// * `root` - The directory to index and insert
     /// * `db` - The object database to insert into
     /// * `compression` - The form of compression to use when inserting
     /// * `skip_duplicates` - Whether to skip already existing entries or overwrite them
     /// # Returns
-    /// The indexed tree and the matching [Object]
+    /// The indexed tree
     pub fn index(
         root: &Path,
         db: &mut ObjectDB,
         compression: ObjectCompression,
         skip_duplicates: bool,
-    ) -> Result<(Tree, Object), Error> {
-        let mut commands: Vec<TreeCommand> = Vec::new();
+    ) -> Result<Tree, Error> {
+        let mut entries: Vec<TreeEntry> = Vec::new();
+
         for entry in std::fs::read_dir(root).ctx(|| format!("Walking {}", root.str_lossy()))? {
             let entry = entry.ctx(|| "Reading filesystem entry")?;
             let unix_info = UNIXInfo::from_entry(&entry).ctx(|| "Getting UNIX info")?;
@@ -63,7 +65,7 @@ impl Tree {
 
             if path.is_symlink() {
                 // We first check for symlinks, as all other functions follow symlinks
-                commands.push(TreeCommand::Symlink {
+                entries.push(TreeEntry::Symlink {
                     info: unix_info,
                     name,
                     destination: path
@@ -74,16 +76,16 @@ impl Tree {
                 })
             } else if path.is_dir() {
                 // Directories get linked to as subtrees
-                let (_, object) = Tree::index(&path, db, compression, skip_duplicates)?;
-                commands.push(TreeCommand::Subtree {
+                let tree = Tree::index(&path, db, compression, skip_duplicates)?;
+                entries.push(TreeEntry::Subtree {
                     info: unix_info,
                     name,
-                    oid: object.oid,
+                    tree,
                 });
             } else {
                 // Files get hashed normally
                 let object = db.insert_file_infer(&path, compression, skip_duplicates)?;
-                commands.push(TreeCommand::File {
+                entries.push(TreeEntry::File {
                     info: unix_info,
                     name,
                     oid: object.oid,
@@ -91,40 +93,36 @@ impl Tree {
             }
         }
 
-        let tree = Tree { commands };
+        // Sort the entries alphabetically
+        entries.sort();
 
-        let object = tree
-            .insert(db, compression, skip_duplicates)
-            .ctx(|| "Inserting this tree")?;
+        let tree = Tree { entries };
 
-        Ok((tree, object))
+        Ok(tree)
     }
 
     /// Walks the index file and yields the entries
     /// # Arguments
     /// * `function` - The yield function providing the current working directory and the command to be executed
-    pub fn walk<F: FnMut(&Path, &TreeCommand) -> Result<bool, Error>>(
+    pub fn walk<F: FnMut(&Path, &TreeEntry) -> Result<bool, Error>>(
         &self,
         function: &mut F,
-        odb: &ObjectDB,
+        _odb: &ObjectDB,
     ) -> Result<(), Error> {
         let path = PathBuf::new();
 
-        for command in &self.commands {
+        for command in &self.entries {
             if !function(&path, command)? {
                 break;
             }
 
-            if let TreeCommand::Subtree {
+            if let TreeEntry::Subtree {
                 info: _,
                 name: _,
-                oid,
+                tree,
             } = command
             {
-                let mut obj = odb.read(oid)?;
-                let tree = Tree::try_unpack(&mut obj)?;
-
-                tree.walk(function, odb)?;
+                tree.walk(function, _odb)?;
             }
         }
 
@@ -135,23 +133,23 @@ impl Tree {
     pub fn get_dependencies(&self) -> Vec<ObjectID> {
         let mut dependencies = Vec::new();
 
-        for command in &self.commands {
+        for command in &self.entries {
             match command {
-                TreeCommand::File {
+                TreeEntry::File {
                     info: _,
                     name: _,
                     oid,
                 } => dependencies.push(oid.clone()),
-                TreeCommand::Symlink {
+                TreeEntry::Symlink {
                     info: _,
                     name: _,
                     destination: _,
                 } => {}
-                TreeCommand::Subtree {
+                TreeEntry::Subtree {
                     info: _,
                     name: _,
-                    oid,
-                } => dependencies.push(oid.clone()),
+                    tree,
+                } => dependencies.push(tree.oid()),
             }
         }
 
@@ -165,12 +163,24 @@ impl Tree {
     /// * `skip_duplicates` - Whether to skip already existing entries or overwrite them
     /// # Returns
     /// The inserted [Object]
-    pub fn insert(
+    pub fn insert_into_odb(
         &self,
         db: &mut ObjectDB,
         compression: ObjectCompression,
         skip_duplicates: bool,
     ) -> Result<Object, Error> {
+        // Before inserting self, we must insert all subtrees
+        for entry in &self.entries {
+            if let TreeEntry::Subtree {
+                info: _,
+                name: _,
+                tree,
+            } = entry
+            {
+                tree.insert_into_odb(db, compression, skip_duplicates)?;
+            }
+        }
+
         let mut buf = Vec::new();
         self.pack(&mut buf)?;
         let mut buf = Cursor::new(buf);
@@ -191,12 +201,22 @@ impl Tree {
     pub fn deploy(&self, root: &Path, db: &ObjectDB) -> Result<(), Error> {
         util::fs::create_dir_all(root).ctx(|| "Creating parent directory")?;
 
-        for command in &self.commands {
+        for command in &self.entries {
             debug!("Executing {command} @ {}", root.str_lossy());
             command.execute(root, db)?;
         }
 
         Ok(())
+    }
+
+    /// Returns the object id derived from this tree
+    pub fn oid(&self) -> ObjectID {
+        let mut buf = Vec::new();
+        self.pack(&mut buf)
+            .expect("[DEV] Packing to a vec should never fail");
+        let mut buf = Cursor::new(buf);
+
+        ObjectID::from(hash_stream(&mut buf).expect("Hashing a stream should never fail"))
     }
 }
 
@@ -207,17 +227,22 @@ impl Packable for Tree {
         out.write(b"ALTR").e_context(context)?;
         out.write(&[CURRENT_VERSION]).e_context(context)?;
 
-        for command in &self.commands {
-            command.pack(out)?;
+        // When inserting, trees MUST be sorted
+        if !self.entries.is_sorted() {
+            panic!("[DEV] Tried to pack a non-sorted tree")
+        }
+
+        for entry in &self.entries {
+            entry.pack(out)?;
         }
 
         Ok(())
     }
 }
 
-impl Unpackable for Tree {
-    fn unpack<R: Read>(input: &mut R) -> Result<Option<Self>, Error> {
-        let context = || "Parsing index command";
+impl ODBUnpackable for Tree {
+    fn try_unpack_from_odb<R: Read>(input: &mut R, odb: &ObjectDB) -> Result<Option<Self>, Error> {
+        let context = || "Parsing index entry";
 
         let mut buf = [0u8; 4];
         input.read_exact(&mut buf).e_context(context)?;
@@ -244,18 +269,18 @@ impl Unpackable for Tree {
             .e_context(context)?;
         }
 
-        let mut commands: Vec<TreeCommand> = Vec::new();
+        let mut entries: Vec<TreeEntry> = Vec::new();
 
         loop {
-            let command = match TreeCommand::unpack(input).e_context(context)? {
+            let entry = match TreeEntry::try_unpack_from_odb(input, odb).e_context(context)? {
                 Some(c) => c,
                 None => break,
             };
 
-            trace!("Unpacked entry: {:x?}", command);
-            commands.push(command);
+            trace!("Unpacked entry: {:x?}", entry);
+            entries.push(entry);
         }
 
-        Ok(Some(Tree { commands }))
+        Ok(Some(Tree { entries }))
     }
 }

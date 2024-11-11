@@ -4,6 +4,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use log::trace;
+
 use crate::{
     error::{Error, ErrorExt},
     model::{ObjectDB, ObjectID},
@@ -51,6 +53,7 @@ impl TreeCommand {
         match self {
             Self::File { info, name, oid } => {
                 let path = path.join(name);
+                trace!("Placing file {oid} @ {}", path.str_lossy());
                 let mut object = db.read(oid).ctx(|| "Retrieving object")?;
 
                 let mut file =
@@ -68,6 +71,7 @@ impl TreeCommand {
                 destination,
             } => {
                 let path = path.join(name);
+                trace!("Placing symlink to {destination} @ {}", path.str_lossy());
                 fs::create_symlink(&path, &PathBuf::from(destination))?;
 
                 info.apply_path(&path)
@@ -80,6 +84,7 @@ impl TreeCommand {
                 let tree = Tree::try_unpack(&mut object).ctx(|| "Unpacking subtree")?;
 
                 let path = path.join(name);
+                trace!("Placing subtree {oid} @ {}", path.str_lossy());
                 fs::create_dir_all(&path)?;
 
                 info.apply_path(&path)

@@ -8,12 +8,13 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use log::debug;
+use log::{debug, trace};
 
 use crate::{
     error::{Error, ErrorExt},
     model::ObjectDB,
     util::{
+        self,
         fs::{PathUtil, UNIXInfo},
         Packable, Unpackable,
     },
@@ -188,15 +189,12 @@ impl Tree {
     /// * `root` - The root directory to deploy to
     /// * `db` - The object database to use for getting objects
     pub fn deploy(&self, root: &Path, db: &ObjectDB) -> Result<(), Error> {
-        self.walk(
-            &mut |path, command| {
-                debug!("Command: {command}");
-                command.execute(&root.join(path), db)?;
+        util::fs::create_dir_all(root).ctx(|| "Creating parent directory")?;
 
-                Ok(true)
-            },
-            db,
-        )?;
+        for command in &self.commands {
+            debug!("Executing {command} @ {}", root.str_lossy());
+            command.execute(root, db)?;
+        }
 
         Ok(())
     }
@@ -254,7 +252,7 @@ impl Unpackable for Tree {
                 None => break,
             };
 
-            debug!("Got one entry: {:x?}", command);
+            trace!("Unpacked entry: {:x?}", command);
             commands.push(command);
         }
 

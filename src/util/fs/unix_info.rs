@@ -3,8 +3,10 @@ use std::{
     io::{self, Read, Write},
     os::{
         fd::AsRawFd,
-        unix,
-        unix::fs::{MetadataExt, PermissionsExt},
+        unix::{
+            self,
+            fs::{MetadataExt, PermissionsExt},
+        },
     },
     path::Path,
 };
@@ -17,7 +19,7 @@ use crate::{
 };
 
 /// A structure to wrap UNIX file attributes
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct UNIXInfo {
     /// The UNIX user id for the entry
     pub uid: u32,
@@ -44,6 +46,21 @@ impl UNIXInfo {
     /// Uses [std::fs::DirEntry::metadata()]
     pub fn from_entry(entry: &std::fs::DirEntry) -> Result<Self, std::io::Error> {
         let metadata = entry.metadata()?;
+
+        let uid = metadata.uid();
+        let gid = metadata.gid();
+        let mode = metadata.mode();
+
+        Ok(Self { uid, gid, mode })
+    }
+
+    /// Creates a new instance by getting information about `path`
+    /// # Arguments
+    /// * `path` - The path to analyze
+    ///
+    /// Uses [std::fs::metadata()]
+    pub fn from_path(path: &Path) -> Result<Self, std::io::Error> {
+        let metadata = std::fs::metadata(path)?;
 
         let uid = metadata.uid();
         let gid = metadata.gid();

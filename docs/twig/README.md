@@ -8,7 +8,7 @@ Twig works using subcommands, of which the following are available:
 
 - [`odb`](#object-database-access-twig-odb): Interact with the object database in a low-level way
 
-- [`index`](#index-utilities-twig-index): Work with index (`.aidx`) files
+- [`tree`](#index-utilities-twig-tree): Work with trees
 
 > [!TIP]
 > Twig assumes the acacia directory to exist at the current user's home (`~/.acacia`).
@@ -50,4 +50,4 @@ twig odb put [--compression {none;xz}] [--force] <PATH>
 > Normally, twig checks for an already existing object in the database.
 > The `--force` flag will force twig to overwrite the existing object.
 
-## Index utilities (`twig index`)
+## Tree utilities (`twig tree`)

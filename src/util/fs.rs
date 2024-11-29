@@ -1,8 +1,5 @@
 //! Utilities for interacting with a filesystem
 
-mod index;
-pub use index::*;
-
 mod unix_info;
 pub use unix_info::*;
 

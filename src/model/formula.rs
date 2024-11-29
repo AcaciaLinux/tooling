@@ -4,7 +4,6 @@ use std::{
 };
 
 use indexmap::IndexMap;
-use log::trace;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -19,7 +18,7 @@ use crate::{
     ODB_DEPTH,
 };
 
-use super::{Home, Object, ObjectCompression, ObjectDB, ObjectID, ObjectType};
+use super::{Home, Object, ObjectCompression, ObjectDB, ObjectID, ObjectType, Tree};
 
 /// A resolved formula that uniquely describes a package's
 /// build instructions to be stored in the object database.
@@ -63,9 +62,8 @@ pub struct Formula {
     /// special directories within the package root
     pub layout: IndexMap<String, Vec<String>>,
 
-    /// The files that are shipped with this formula
-    /// including the downloaded source files
-    pub files: IndexMap<PathBuf, ObjectID>,
+    /// The tree of files that is shipped with this formula
+    pub tree: ObjectID,
 }
 
 /// Helper function to resolve an optional vector of
@@ -109,9 +107,9 @@ impl FormulaFile {
             .parent()
             .expect("Parent directory of formula file");
 
-        let mut files: IndexMap<PathBuf, ObjectID> = IndexMap::new();
         let file_sources = formula.package.sources.clone().unwrap_or_default();
         let mut object_db = ObjectDB::init(home.object_db_path(), ODB_DEPTH)?;
+        let temp_dir = home.get_temporary_directory();
 
         // If the formula has some supported architectures,
         // make sure the build architecture is in them
@@ -137,58 +135,33 @@ impl FormulaFile {
         }
         .e_context(|| "Resolving formula architecture")?;
 
+        let mut tree = Tree::index(parent, &mut object_db, compression, true)
+            .ctx(|| "Indexing formula files")?;
+
         for source in file_sources {
             let url = source.get_url(&formula.package);
             let dest = PathBuf::from(source.get_dest(&formula.package));
 
-            let tmp_path = home.get_temp_file_path();
+            let path = temp_dir.join(&dest);
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent).ctx(|| "Creating source parent directory")?;
+            }
+
             download_to_file(
                 &url,
-                &tmp_path,
+                &path,
                 &format!("Fetching source {}", dest.str_lossy()),
                 true,
             )?;
-
-            let object = object_db.insert_file(
-                &tmp_path,
-                ObjectType::Other,
-                compression,
-                true,
-                Vec::new(),
-            )?;
-
-            files.insert(dest, object.oid);
         }
 
-        let mut results = Vec::new();
+        let sources_tree = Tree::index(&temp_dir, &mut object_db, compression, true)
+            .ctx(|| "Creating sources tree")?;
+        tree.merge(sources_tree);
 
-        fs::walk_dir_virtual(parent, Path::new(""), true, &mut |entry, path| {
-            if entry.path() != formula_path {
-                results.push((
-                    path.to_owned(),
-                    object_db.insert_file(
-                        &entry.path(),
-                        ObjectType::Other,
-                        compression,
-                        true,
-                        Vec::new(),
-                    ),
-                ));
-            } else {
-                trace!(
-                    "Skipping inserting formula source into ODB: {}",
-                    formula_path.str_lossy()
-                );
-            }
-            true
-        })
-        .e_context(|| "Walking formula parent directory")?;
-
-        for (path, object) in results {
-            let object = object?;
-
-            files.insert(path, object.oid);
-        }
+        let tree_obj = tree
+            .insert_into_odb(&mut object_db, compression, true)
+            .ctx(|| "Inserting tree")?;
 
         let formula = Formula {
             name: formula.package.name,
@@ -208,7 +181,7 @@ impl FormulaFile {
             package: formula.package.package,
 
             layout: formula.package.layout,
-            files,
+            tree: tree_obj.oid,
         };
 
         let object = formula.insert(&mut object_db, compression)?;
@@ -239,14 +212,12 @@ impl Formula {
     ) -> Result<Object, Error> {
         let mut cursor = Cursor::new(self.json());
 
-        let dependencies = self.files.clone().into_iter().map(|e| e.1).collect();
-
         object_db.insert_stream(
             &mut cursor,
             ObjectType::AcaciaFormula,
             compression,
             true,
-            dependencies,
+            vec![self.tree.clone()],
         )
     }
 }

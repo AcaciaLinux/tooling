@@ -37,13 +37,19 @@ impl Home {
 
     /// Returns the path to a temporary directory
     /// in the home
-    pub fn get_tmp_dir(&self) -> PathBuf {
+    fn get_tmp_dir(&self) -> PathBuf {
         self.root.join("tmp")
     }
 
     /// Creates a file path for a temporary file
     /// that is unique within the temporary directory
     pub fn get_temp_file_path(&self) -> PathBuf {
+        let uuid = uuid::Uuid::new_v4();
+        self.get_tmp_dir().join(uuid.to_string())
+    }
+
+    /// Returns a path to a temporary directory to perform work in
+    pub fn get_temporary_directory(&self) -> PathBuf {
         let uuid = uuid::Uuid::new_v4();
         self.get_tmp_dir().join(uuid.to_string())
     }

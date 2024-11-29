@@ -4,12 +4,11 @@ pub mod treecommand;
 pub use treecommand::*;
 
 use core::panic;
+use log::{debug, trace};
 use std::{
     io::{Cursor, ErrorKind, Read, Write},
     path::{Path, PathBuf},
 };
-
-use log::{debug, trace};
 
 use crate::{
     error::{Error, ErrorExt},
@@ -99,6 +98,40 @@ impl Tree {
         let tree = Tree { entries };
 
         Ok(tree)
+    }
+
+    /// Merges another tree into this tree by following
+    /// these rules:
+    /// - A non-existing (by name) entry gets added
+    /// - Existing entries (by name) keep the name and UNIX info of the existing entry
+    /// - Subtrees get merged in the same way
+    /// # Arguments
+    /// * `other` - The other tree to merge
+    pub fn merge(&mut self, other: Tree) {
+        for entry in other.entries {
+            match self.get_entry_by_name_mut(entry.name()) {
+                None => self.entries.push(entry),
+                Some(my_entry) => {
+                    if let TreeEntry::Subtree {
+                        info: _,
+                        name: _,
+                        tree: my_tree,
+                    } = my_entry
+                    {
+                        if let TreeEntry::Subtree {
+                            info: _,
+                            name: _,
+                            tree,
+                        } = entry
+                        {
+                            my_tree.merge(tree);
+                        }
+                    }
+                }
+            }
+        }
+
+        self.entries.sort();
     }
 
     /// Walks the index file and yields the entries
@@ -217,6 +250,20 @@ impl Tree {
         let mut buf = Cursor::new(buf);
 
         ObjectID::from(hash_stream(&mut buf).expect("Hashing a stream should never fail"))
+    }
+
+    /// Returns a reference to an entry by name, if available
+    /// # Arguments
+    /// * `name` - The name of the entry
+    pub fn get_entry_by_name(&self, name: &str) -> Option<&TreeEntry> {
+        self.entries.iter().find(|entry| entry.name() == name)
+    }
+
+    /// Returns a mutable reference to an entry by name, if available
+    /// # Arguments
+    /// * `name` - The name of the entry
+    pub fn get_entry_by_name_mut(&mut self, name: &str) -> Option<&mut TreeEntry> {
+        self.entries.iter_mut().find(|entry| entry.name() == name)
     }
 }
 

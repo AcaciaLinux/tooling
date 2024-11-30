@@ -3,7 +3,7 @@ use std::{io, path::PathBuf};
 use clap::Parser;
 use tooling::{
     error::{Error, ErrorExt, ErrorType},
-    model::{ObjectDB, ObjectID, ObjectType},
+    model::{Object, ObjectDB, ObjectID, ObjectType},
     util::fs::{file_create, PathUtil},
     ODB_DEPTH,
 };
@@ -40,6 +40,15 @@ enum Command {
 
         /// The path to the file to put into the object database
         path: PathBuf,
+    },
+    /// Print the dependencies of an object
+    Dependencies {
+        /// List the dependencies in a tree form
+        #[arg(long, action)]
+        tree: bool,
+
+        /// The object ID to list the dependencies of
+        oid: ObjectID,
     },
 }
 
@@ -92,8 +101,33 @@ impl Command {
                     .e_context(|| format!("Putting {} into object database", path.str_lossy()))?;
                 println!("{}", object.oid);
             }
+            Command::Dependencies { tree, oid } => {
+                let object = odb.get_object(oid)?;
+                if *tree {
+                    print_tree(&object, &odb, 0)?;
+                } else {
+                    let deps = object.resolve_dependencies(&odb, true)?;
+                    for dep in deps {
+                        println!("{}", dep.oid);
+                    }
+                }
+            }
         }
 
         Ok(0)
     }
+}
+
+fn print_tree(object: &Object, odb: &ObjectDB, depth: u32) -> Result<(), Error> {
+    if depth > 0 {
+        println!("{}|--- {}", "|  ".repeat(depth as usize - 1), object.oid);
+    } else {
+        println!("{}", object.oid);
+    }
+
+    for dependency in object.resolve_dependencies(odb, false)? {
+        print_tree(&dependency, odb, depth + 1)?;
+    }
+
+    Ok(())
 }

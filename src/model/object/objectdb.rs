@@ -101,7 +101,11 @@ impl ObjectDB {
     ) -> Result<Object, Error> {
         let mut src_file = fs::file_open(path)?;
 
-        self.insert_stream(&mut src_file, ty, compression, skip_duplicate, dependencies)
+        let object =
+            self.insert_stream(&mut src_file, ty, compression, skip_duplicate, dependencies)?;
+        debug!("Inserted file {} as {}", path.str_lossy(), object.oid);
+
+        Ok(object)
     }
 
     /// Insert a new object into the database by reading from a stream

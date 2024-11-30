@@ -4,6 +4,7 @@ use std::{
 };
 
 use indexmap::IndexMap;
+use log::debug;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -212,12 +213,19 @@ impl Formula {
     ) -> Result<Object, Error> {
         let mut cursor = Cursor::new(self.json());
 
-        object_db.insert_stream(
+        let object = object_db.insert_stream(
             &mut cursor,
             ObjectType::AcaciaFormula,
             compression,
             true,
             vec![self.tree.clone()],
-        )
+        )?;
+
+        debug!(
+            "Inserted formula {}@{} as {}",
+            self.name, self.version, object.oid
+        );
+
+        Ok(object)
     }
 }

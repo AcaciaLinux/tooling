@@ -69,6 +69,7 @@ pub fn create_symlink(path: &Path, destination: &Path) -> Result<(), Error> {
 ///
 /// Uses the [std::fs::copy()] function
 pub fn copy(src: &Path, dest: &Path) -> Result<u64, Error> {
+    trace!("Copying {} ==> {}", src.str_lossy(), dest.str_lossy());
     std::fs::copy(src, dest).e_context(|| {
         format!(
             "Copying '{}' to '{}'",
@@ -82,6 +83,7 @@ pub fn copy(src: &Path, dest: &Path) -> Result<u64, Error> {
 ///
 /// Uses the [std::fs::rename()] function
 pub fn rename(src: &Path, dest: &Path) -> Result<(), Error> {
+    trace!("Renaming {} ==> {}", src.str_lossy(), dest.str_lossy());
     std::fs::rename(src, dest).e_context(|| {
         format!(
             "Renaming '{}' to '{}'",
@@ -95,6 +97,7 @@ pub fn rename(src: &Path, dest: &Path) -> Result<(), Error> {
 ///
 /// Uses the [std::fs::remove_file()] function
 pub fn remove_file(path: &Path) -> Result<(), Error> {
+    trace!("Removing file {}", path.str_lossy());
     std::fs::remove_file(path).e_context(|| format!("Removing file '{}'", path.to_string_lossy()))
 }
 
@@ -102,6 +105,7 @@ pub fn remove_file(path: &Path) -> Result<(), Error> {
 ///
 /// Uses the [std::fs::remove_dir()] function
 pub fn remove_dir(path: &Path) -> Result<(), Error> {
+    trace!("Removing directory {}", path.str_lossy());
     std::fs::remove_dir(path)
         .e_context(|| format!("Removing empty directory '{}'", path.to_string_lossy()))
 }
@@ -110,6 +114,7 @@ pub fn remove_dir(path: &Path) -> Result<(), Error> {
 ///
 /// Uses the [std::fs::remove_dir_all()] function
 pub fn remove_dir_all(path: &Path) -> Result<(), Error> {
+    trace!("Removing directory recursively {}", path.str_lossy());
     std::fs::remove_dir_all(path)
         .e_context(|| format!("Removing empty directory '{}'", path.to_string_lossy()))
 }
@@ -125,6 +130,7 @@ pub fn file_open(path: &Path) -> Result<File, Error> {
 /// # Arguments
 /// * `path` - The path to the file to create
 pub fn file_create(path: &Path) -> Result<File, Error> {
+    trace!("Creating file {}", path.str_lossy());
     File::create(path).e_context(|| format!("Creating file {}", path.to_string_lossy()))
 }
 
@@ -132,6 +138,7 @@ pub fn file_create(path: &Path) -> Result<File, Error> {
 /// # Arguments
 /// * `path` - The path to the file to create
 pub fn file_create_rw(path: &Path) -> Result<File, Error> {
+    trace!("Creating file RW {}", path.str_lossy());
     File::options()
         .create(true)
         .append(false)
@@ -148,6 +155,7 @@ pub fn file_create_rw(path: &Path) -> Result<File, Error> {
 /// # Arguments
 /// * `path` - The path to the file to read
 pub fn file_read_to_string(path: &Path) -> Result<String, Error> {
+    trace!("Reading file {}", path.str_lossy());
     std::fs::read_to_string(path)
         .e_context(|| format!("Reading {} to string", path.to_string_lossy()))
 }

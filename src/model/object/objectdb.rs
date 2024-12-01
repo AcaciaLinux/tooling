@@ -1,7 +1,7 @@
 use std::{
     fmt::Display,
     fs::File,
-    io::{self, copy, Read, Seek, SeekFrom, Write},
+    io::{copy, Read, Seek, SeekFrom},
     path::{Path, PathBuf},
 };
 
@@ -11,8 +11,7 @@ use crate::{
     error::{Error, ErrorExt, ErrorType, Throwable},
     util::{
         fs::{self, file_create, file_open, PathUtil},
-        hash::hash_stream,
-        Packable, Unpackable,
+        Unpackable,
     },
     OBJECT_FILE_EXTENSION,
 };
@@ -46,6 +45,17 @@ impl ObjectDB {
     /// Returns the root directory
     pub fn get_root(&self) -> &Path {
         &self.root
+    }
+
+    /// Returns the path to the internal temporary directory
+    pub fn get_temp_dir(&self) -> PathBuf {
+        self.get_root().join("temp")
+    }
+
+    /// Returns a path to a temporary file to use as a buffer
+    pub fn get_temp_file_path(&self) -> PathBuf {
+        let uuid = uuid::Uuid::new_v4();
+        self.get_temp_dir().join(uuid.to_string())
     }
 
     /// Returns the current depth
@@ -133,7 +143,8 @@ impl ObjectDB {
             .seek(SeekFrom::Start(0))
             .e_context(|| "Seeking to start of stream")?;
 
-        let oid = ObjectID::from(hash_stream(input).e_context(|| "Hashing source stream")?);
+        let oid =
+            ObjectID::new_from_stream(input, &dependencies).ctx(|| "Hashing source stream")?;
         let mut db_path = self.root.join(oid.to_path(self.depth));
         db_path.set_extension(OBJECT_FILE_EXTENSION);
 
@@ -155,38 +166,19 @@ impl ObjectDB {
                 .e_context(|| format!("Creating parent directory {}", p.str_lossy()))?;
         }
 
-        let mut dst_file = fs::file_create(&db_path).e_context(|| "Creating object file")?;
+        // Create a temporary file for inserting
+        let temp_file_path = self.get_temp_file_path();
 
-        let object = Object {
-            oid,
-            dependencies,
-            ty,
-            compression,
-        };
+        if let Some(p) = temp_file_path.parent() {
+            fs::create_dir_all(p).ctx(|| format!("Creating parent directory {}", p.str_lossy()))?;
+        }
 
-        object
-            .pack(&mut dst_file)
-            .e_context(|| "Packing object data")?;
+        let temp_file = fs::file_create(&temp_file_path).ctx(|| "Creating temporary file")?;
 
-        input
-            .seek(SeekFrom::Start(0))
-            .e_context(|| "Seeking to start of source file")?;
+        let object = Object::create_from_stream(input, temp_file, dependencies, ty, compression)
+            .ctx(|| "Inserting object")?;
 
-        let mut output: Box<dyn Write> = match compression {
-            ObjectCompression::None => Box::new(dst_file),
-            ObjectCompression::Xz => {
-                trace!("Using XZ compression for inserting object");
-
-                let stream = xz::stream::Stream::new_easy_encoder(6, xz::stream::Check::None)
-                    .e_context(|| "Creating xz stream")?;
-
-                Box::new(xz::write::XzEncoder::new_stream(dst_file, stream))
-            }
-        };
-
-        io::copy(input, &mut output).e_context(|| "Copying object contents")?;
-
-        debug!("Inserted object {}", object.oid);
+        fs::rename(&temp_file_path, &db_path).ctx(|| "Moving temporary file to final place")?;
 
         Ok(object)
     }

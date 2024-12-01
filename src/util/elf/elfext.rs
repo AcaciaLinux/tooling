@@ -18,7 +18,7 @@ pub trait ELFExt {
     fn get_runpaths(&self) -> Result<Option<Vec<OsString>>, ParseError>;
 }
 
-impl<'data, T: EndianParse> ELFExt for ElfBytes<'data, T> {
+impl<T: EndianParse> ELFExt for ElfBytes<'_, T> {
     fn get_interpreter(&self) -> Result<Option<PathBuf>, ParseError> {
         let section = match self.section_header_by_name(".interp")? {
             Some(s) => s,

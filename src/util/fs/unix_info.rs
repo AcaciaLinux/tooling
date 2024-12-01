@@ -79,7 +79,7 @@ impl UNIXInfo {
         match nix::sys::stat::fchmodat(
             None,
             path,
-            Mode::from_bits_retain(self.mode.try_into().expect("Convert to mode to u32")),
+            Mode::from_bits_retain(self.mode),
             FchmodatFlags::NoFollowSymlink,
         ) {
             Ok(()) => Ok(()),

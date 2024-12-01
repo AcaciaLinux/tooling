@@ -111,7 +111,7 @@ impl Directory {
     /// * `stack` - A mutable linked list to store the path to the current file, should be empty on begin
     /// * `recursive` - If this function should operate recursively
     /// * `callback` - The callback for every file. Args: (stack_to_parent_dir, filesystem_entry) -> bool. If the
-    /// callback returns with `false`, iterating will stop immediately
+    ///    callback returns with `false`, iterating will stop immediately
     /// # Returns
     /// If the iteration was aborted or not
     pub fn iterate<'a, F: FnMut(&LinkedList<&OsString>, &FSEntry) -> bool>(

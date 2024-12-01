@@ -326,14 +326,9 @@ impl ODBUnpackable for Tree {
 
         let mut entries: Vec<TreeEntry> = Vec::new();
 
-        loop {
-            let entry = match TreeEntry::try_unpack_from_odb(input, odb).e_context(context)? {
-                Some(c) => c,
-                None => break,
-            };
-
+        while let Some(entry) = TreeEntry::try_unpack_from_odb(input, odb).ctx(context)? {
             trace!("Unpacked entry: {:x?}", entry);
-            entries.push(entry);
+            entries.push(entry)
         }
 
         Ok(Some(Tree { entries }))

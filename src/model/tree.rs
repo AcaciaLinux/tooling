@@ -1,6 +1,6 @@
 //! Data structures for representing and storing the AcaciaLinux index files
 
-pub mod treecommand;
+mod treecommand;
 pub use treecommand::*;
 
 use core::panic;

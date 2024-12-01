@@ -100,6 +100,7 @@ pub trait ODBUnpackable {
 /// Commonly used for the [`IntoU16`](tooling_codegen::IntoU16) macro
 pub trait ReprU16 {
     /// Returns the `u16` representation of the enum variant at hand
+    #[allow(clippy::wrong_self_convention)]
     fn into_u16(&self) -> u16;
 
     /// Returs the matching enum variant that is meant for `num`

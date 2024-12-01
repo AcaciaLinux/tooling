@@ -103,7 +103,7 @@ impl FSEntry {
     }
 }
 
-impl<'a> SearchType<'a> {
+impl SearchType<'_> {
     /// Returns the name of the SearchType
     pub fn name(&self) -> &OsStr {
         match self {

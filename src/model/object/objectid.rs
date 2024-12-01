@@ -21,7 +21,7 @@ pub struct ObjectID {
 
 impl Debug for ObjectID {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_string())
+        write!(f, "{}", self)
     }
 }
 
@@ -53,7 +53,7 @@ impl ObjectID {
 
     /// Encodes this object id to a hex string
     pub fn to_hex_str(&self) -> String {
-        hex::encode(&self.hash)
+        hex::encode(self.hash)
     }
 
     /// Returns the length of the object id in bytes

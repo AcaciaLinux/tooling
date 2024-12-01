@@ -17,7 +17,7 @@ impl<'de> serde::Deserialize<'de> for VersionString {
     {
         struct CustomStringVisitor;
 
-        impl<'de> serde::de::Visitor<'de> for CustomStringVisitor {
+        impl serde::de::Visitor<'_> for CustomStringVisitor {
             type Value = VersionString;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -28,7 +28,7 @@ impl<'de> serde::Deserialize<'de> for VersionString {
             where
                 E: serde::de::Error,
             {
-                let mut parts = value.splitn(3, |c| c == '@' || c == '/');
+                let mut parts = value.splitn(3, ['@', '/']);
                 let name = parts
                     .next()
                     .ok_or_else(|| E::custom("Missing name or '@' delimiter"))?

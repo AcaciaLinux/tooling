@@ -52,7 +52,7 @@ pub struct HandlerGuard<'a> {
     dispatcher: &'a SignalDispatcher,
 }
 
-impl<'a> Drop for HandlerGuard<'a> {
+impl Drop for HandlerGuard<'_> {
     fn drop(&mut self) {
         self.dispatcher.pop_last_handler()
     }

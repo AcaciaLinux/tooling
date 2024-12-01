@@ -1,6 +1,6 @@
 //! Data structures for representing and storing the AcaciaLinux index files
 
-pub mod treecommand;
+mod treecommand;
 pub use treecommand::*;
 
 use core::panic;
@@ -16,7 +16,6 @@ use crate::{
     util::{
         self,
         fs::{PathUtil, UNIXInfo},
-        hash::hash_stream,
         ODBUnpackable, Packable,
     },
 };
@@ -257,7 +256,8 @@ impl Tree {
             .expect("[DEV] Packing to a vec should never fail");
         let mut buf = Cursor::new(buf);
 
-        ObjectID::from(hash_stream(&mut buf).expect("Hashing a stream should never fail"))
+        ObjectID::new_from_stream(&mut buf, &self.get_dependencies())
+            .expect("Hashing should never fail")
     }
 
     /// Returns a reference to an entry by name, if available

@@ -101,7 +101,11 @@ impl ObjectDB {
     ) -> Result<Object, Error> {
         let mut src_file = fs::file_open(path)?;
 
-        self.insert_stream(&mut src_file, ty, compression, skip_duplicate, dependencies)
+        let object =
+            self.insert_stream(&mut src_file, ty, compression, skip_duplicate, dependencies)?;
+        debug!("Inserted file {} as {}", path.str_lossy(), object.oid);
+
+        Ok(object)
     }
 
     /// Insert a new object into the database by reading from a stream
@@ -243,6 +247,41 @@ impl ObjectDB {
             .e_context(|| "Seeking to beginning of file")?;
 
         Ok(file)
+    }
+
+    /// Tries to get an object from the database
+    /// # Arguments
+    /// * `oid` - The object id of the object to read
+    /// # Returns
+    /// `None` if the object does not exist, else an [Object](super::Object)
+    pub fn try_get_object(&self, oid: &ObjectID) -> Result<Option<Object>, Error> {
+        let mut path = self.root.join(oid.to_path(self.depth));
+        path.set_extension(OBJECT_FILE_EXTENSION);
+
+        if !path.exists() {
+            return Ok(None);
+        }
+
+        let mut file =
+            file_open(&path).e_context(|| format!("Opening object file @ {}", path.str_lossy()))?;
+
+        let object = Object::unpack(&mut file).ctx(|| "Unpacking object")?;
+
+        Ok(object)
+    }
+
+    /// Reads an object from the database
+    /// # Arguments
+    /// * `oid` - The object id of the object to read
+    /// # Returns
+    /// An [Object](super::Object)
+    pub fn get_object(&self, oid: &ObjectID) -> Result<Object, Error> {
+        match self.try_get_object(oid)? {
+            None => Err(Error::new(ErrorType::ObjectDB(
+                ObjectDBError::ObjectNotFound(oid.clone()),
+            ))),
+            Some(r) => Ok(r),
+        }
     }
 }
 

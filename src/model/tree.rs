@@ -218,13 +218,21 @@ impl Tree {
         self.pack(&mut buf)?;
         let mut buf = Cursor::new(buf);
 
-        db.insert_stream(
+        let object = db.insert_stream(
             &mut buf,
             ObjectType::AcaciaTree,
             compression,
             skip_duplicates,
             self.get_dependencies(),
-        )
+        )?;
+
+        debug!(
+            "Inserting tree with {} children as {}",
+            self.entries.len(),
+            object.oid
+        );
+
+        Ok(object)
     }
 
     /// Deploys this index to `root`

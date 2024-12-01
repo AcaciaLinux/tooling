@@ -34,6 +34,38 @@ pub struct Object {
     pub compression: ObjectCompression,
 }
 
+impl Object {
+    /// Resolves the dependencies of this objects into objects
+    /// # Arguments
+    /// * `odb` - The object database to use for resolving
+    /// * `recursive` - Whether to recursively resolve dependencies
+    pub fn resolve_dependencies(
+        &self,
+        odb: &ObjectDB,
+        recursive: bool,
+    ) -> Result<Vec<Object>, Error> {
+        let mut res = Vec::new();
+
+        for oid in &self.dependencies {
+            let object = odb
+                .get_object(oid)
+                .ctx(|| format!("Resolving dependency {} for {}", oid, self.oid))?;
+
+            if recursive {
+                res.append(
+                    &mut object
+                        .resolve_dependencies(odb, recursive)
+                        .ctx(|| format!("Resolving dependency {} for {}", oid, self.oid))?,
+                );
+            }
+
+            res.push(object);
+        }
+
+        Ok(res)
+    }
+}
+
 impl Packable for Object {
     fn pack<W: std::io::prelude::Write>(&self, output: &mut W) -> Result<(), crate::error::Error> {
         let context = || format!("Packing object {}", self.oid.to_hex_str());

@@ -44,9 +44,7 @@ impl ObjectID {
         }
 
         let mut hash = [0u8; 32];
-        for i in 0..32 {
-            hash[i] = hash_vec[i];
-        }
+        hash.copy_from_slice(&hash_vec[..32]);
 
         Ok(Self::new(hash))
     }

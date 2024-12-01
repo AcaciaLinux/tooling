@@ -18,6 +18,9 @@ use crate::{
 
 use super::{Object, ObjectCompression, ObjectID, ObjectReader, ObjectType};
 
+mod driver;
+pub use driver::*;
+
 /// A database for storing AcaciaLinux objects
 pub struct ObjectDB {
     root: PathBuf,

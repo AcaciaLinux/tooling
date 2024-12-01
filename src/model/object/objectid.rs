@@ -1,15 +1,16 @@
 use std::{
     fmt::{Debug, Display},
+    io::{copy, Read},
     path::PathBuf,
     str::FromStr,
 };
 
 use hex::FromHexError;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
-use sha2::{digest::Output, Sha256};
+use sha2::{Digest, Sha256};
 
 use crate::{
-    error::ErrorExt,
+    error::{Error, ErrorExt},
     util::{Packable, Unpackable},
 };
 
@@ -47,6 +48,30 @@ impl ObjectID {
         hash.copy_from_slice(&hash_vec[..32]);
 
         Ok(Self::new(hash))
+    }
+
+    /// Derives a new object id from a stream and its dependencies
+    /// # Arguments
+    /// * `stream` - The stream to hash and derive the objet id from
+    /// * `dependencies` - The dependencies for `stream` to include
+    ///
+    /// # Seeking
+    /// This will seek to the end of `stream` and will not restore its position
+    pub fn new_from_stream<R: Read>(
+        stream: &mut R,
+        dependencies: &Vec<ObjectID>,
+    ) -> Result<Self, Error> {
+        let mut hasher = Sha256::new();
+
+        for dependency in dependencies {
+            hasher.update(dependency.bytes());
+        }
+
+        copy(stream, &mut hasher).e_context(|| "Hashing stream")?;
+
+        Ok(Self {
+            hash: hasher.finalize().into(),
+        })
     }
 
     /// Encodes this object id to a hex string
@@ -89,12 +114,6 @@ impl ObjectID {
         }
 
         path.join(oid_string)
-    }
-}
-
-impl From<Output<Sha256>> for ObjectID {
-    fn from(value: Output<Sha256>) -> Self {
-        Self { hash: value.into() }
     }
 }
 

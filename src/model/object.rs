@@ -1,3 +1,5 @@
+use std::io::{Read, Seek, SeekFrom, Write};
+
 use crate::{
     error::{version::VersionError, Error, ErrorExt, ErrorType},
     util::{Packable, Unpackable},
@@ -64,27 +66,71 @@ impl Object {
 
         Ok(res)
     }
-}
 
-impl Packable for Object {
-    fn pack<W: std::io::prelude::Write>(&self, output: &mut W) -> Result<(), crate::error::Error> {
-        let context = || format!("Packing object {}", self.oid.to_hex_str());
+    /// Creates a new object from a stream and creates an object file
+    /// # Arguments
+    /// * `input` - The input stream to use as the object data
+    /// * `output` - The output stream to write the object file's contents to
+    /// * `ty` - The type of object at hand
+    /// * `compression` - The type of compression to use when inserting the data
+    pub fn create_from_stream<R: Read + Seek, W: Write + Seek>(
+        input: &mut R,
+        mut output: W,
+        dependencies: Vec<ObjectID>,
+        ty: ObjectType,
+        compression: ObjectCompression,
+    ) -> Result<Self, Error> {
+        input
+            .seek(SeekFrom::Start(0))
+            .ctx(|| "Seeking to start of input stream")?;
 
-        output.write_all("AOBJ".as_bytes()).e_context(context)?;
-        output.write_all(&[0]).e_context(context)?;
-        self.oid.pack(output).e_context(context)?;
-        self.ty.pack(output).e_context(context)?;
-        self.compression.pack(output).e_context(context)?;
+        // First, hash the stream
+        let oid =
+            ObjectID::new_from_stream(input, &dependencies).ctx(|| "Calculating object id")?;
 
-        (self.dependencies.len() as u16)
-            .pack(output)
-            .e_context(context)?;
+        let object = Self {
+            oid,
+            dependencies,
+            ty,
+            compression,
+        };
 
-        for dep in &self.dependencies {
-            dep.pack(output).e_context(context)?;
+        output
+            .write_all("AOBJ".as_bytes())
+            .ctx(|| "Writing object magic")?;
+        output.write_all(&[0]).ctx(|| "Writing object version")?;
+        object.oid.pack(&mut output).ctx(|| "Writing object ID")?;
+        object.ty.pack(&mut output).ctx(|| "Writing object type")?;
+        object
+            .compression
+            .pack(&mut output)
+            .ctx(|| "Writing object compression")?;
+
+        (object.dependencies.len() as u16)
+            .pack(&mut output)
+            .ctx(|| "Packing dependencies count")?;
+
+        for dep in &object.dependencies {
+            dep.pack(&mut output).ctx(|| "Writing dependency")?;
         }
 
-        Ok(())
+        let mut output: Box<dyn Write> = match compression {
+            ObjectCompression::None => Box::new(output),
+            ObjectCompression::Xz => {
+                let stream = xz::stream::Stream::new_easy_encoder(6, xz::stream::Check::None)
+                    .ctx(|| "Creating xz stream")?;
+
+                Box::new(xz::write::XzEncoder::new_stream(output, stream))
+            }
+        };
+
+        input
+            .seek(SeekFrom::Start(0))
+            .ctx(|| "Seeking back to input start")?;
+
+        std::io::copy(input, &mut output).e_context(|| "Copying object contents")?;
+
+        Ok(object)
     }
 }
 

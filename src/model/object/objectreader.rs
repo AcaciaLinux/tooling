@@ -1,7 +1,5 @@
 use std::io::{Read, Seek};
 
-use log::trace;
-
 use crate::{
     error::{Error, ErrorExt},
     util::Unpackable,
@@ -29,10 +27,7 @@ impl ObjectReader {
 
         let read: Box<dyn Read> = match object.compression {
             ObjectCompression::None => Box::new(read),
-            ObjectCompression::Xz => {
-                trace!("Using XZ decompression");
-                Box::new(xz::read::XzDecoder::new(read))
-            }
+            ObjectCompression::Xz => Box::new(xz::read::XzDecoder::new(read)),
         };
 
         Ok(Self { object, read })

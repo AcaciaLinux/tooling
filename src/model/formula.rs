@@ -139,8 +139,8 @@ impl FormulaFile {
         }
         .e_context(|| "Resolving formula architecture")?;
 
-        let mut tree = Tree::index(parent, &mut object_db, compression, true)
-            .ctx(|| "Indexing formula files")?;
+        let mut tree =
+            Tree::index(parent, &mut object_db, compression).ctx(|| "Indexing formula files")?;
 
         for source in file_sources {
             let url = source.get_url(&formula.package);
@@ -159,12 +159,12 @@ impl FormulaFile {
             )?;
         }
 
-        let sources_tree = Tree::index(&temp_dir, &mut object_db, compression, true)
-            .ctx(|| "Creating sources tree")?;
+        let sources_tree =
+            Tree::index(&temp_dir, &mut object_db, compression).ctx(|| "Creating sources tree")?;
         tree.merge(sources_tree);
 
         let tree_obj = tree
-            .insert_into_odb(&mut object_db, compression, true)
+            .insert_into_odb(&mut object_db, compression)
             .ctx(|| "Inserting tree")?;
 
         let formula = Formula {
@@ -220,7 +220,6 @@ impl Formula {
             &mut cursor,
             ObjectType::AcaciaFormula,
             compression,
-            true,
             vec![self.tree.clone()],
         )?;
 

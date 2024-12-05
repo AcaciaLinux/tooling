@@ -33,10 +33,6 @@ enum Command {
         #[arg(long, short, default_value_t = Compression::None)]
         compression: Compression,
 
-        /// Insert new objects even if they already exist
-        #[arg(long, short, default_value = "false")]
-        force: bool,
-
         /// The path to the file to put into the object database
         path: PathBuf,
     },
@@ -85,17 +81,12 @@ impl Command {
                 }
                 .e_context(|| "Copying object data")?;
             }
-            Command::Put {
-                compression,
-                force,
-                path,
-            } => {
+            Command::Put { compression, path } => {
                 let object = odb
                     .insert_file(
                         path,
                         ObjectType::Other,
                         compression.clone().into(),
-                        !force,
                         Vec::new(),
                     )
                     .e_context(|| format!("Putting {} into object database", path.str_lossy()))?;

@@ -38,14 +38,12 @@ impl Tree {
     /// * `root` - The directory to index and insert
     /// * `db` - The object database to insert into
     /// * `compression` - The form of compression to use when inserting
-    /// * `skip_duplicates` - Whether to skip already existing entries or overwrite them
     /// # Returns
     /// The indexed tree
     pub fn index(
         root: &Path,
         db: &mut ObjectDB,
         compression: ObjectCompression,
-        skip_duplicates: bool,
     ) -> Result<Tree, Error> {
         let mut entries: Vec<TreeEntry> = Vec::new();
 
@@ -74,7 +72,7 @@ impl Tree {
                 })
             } else if path.is_dir() {
                 // Directories get linked to as subtrees
-                let tree = Tree::index(&path, db, compression, skip_duplicates)?;
+                let tree = Tree::index(&path, db, compression)?;
                 entries.push(TreeEntry::Subtree {
                     info: unix_info,
                     name,
@@ -82,7 +80,7 @@ impl Tree {
                 });
             } else {
                 // Files get hashed normally
-                let object = db.insert_file_infer(&path, compression, skip_duplicates)?;
+                let object = db.insert_file_infer(&path, compression)?;
                 entries.push(TreeEntry::File {
                     info: unix_info,
                     name,
@@ -192,14 +190,12 @@ impl Tree {
     /// # Arguments
     /// * `db` - The object database to insert into
     /// * `compression` - The form of compression to use when inserting
-    /// * `skip_duplicates` - Whether to skip already existing entries or overwrite them
     /// # Returns
     /// The inserted [Object]
     pub fn insert_into_odb(
         &self,
         db: &mut ObjectDB,
         compression: ObjectCompression,
-        skip_duplicates: bool,
     ) -> Result<Object, Error> {
         // Before inserting self, we must insert all subtrees
         for entry in &self.entries {
@@ -209,7 +205,7 @@ impl Tree {
                 tree,
             } = entry
             {
-                tree.insert_into_odb(db, compression, skip_duplicates)?;
+                tree.insert_into_odb(db, compression)?;
             }
         }
 
@@ -221,7 +217,6 @@ impl Tree {
             &mut buf,
             ObjectType::AcaciaTree,
             compression,
-            skip_duplicates,
             self.get_dependencies(),
         )?;
 

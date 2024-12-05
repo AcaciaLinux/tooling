@@ -37,7 +37,6 @@ impl ObjectDB {
     /// # Arguments
     /// * `path` - The path to the file to be inserted
     /// * `compression` - The compression to use on this file
-    /// * `skip_duplicate` - Whether to skip an already existing entry
     /// # Returns
     /// The inserted [Object](super::Object)
     ///
@@ -46,15 +45,8 @@ impl ObjectDB {
         &mut self,
         path: &Path,
         compression: ObjectCompression,
-        skip_duplicate: bool,
     ) -> Result<Object, Error> {
-        self.insert_file(
-            path,
-            ObjectType::Other,
-            compression,
-            skip_duplicate,
-            Vec::new(),
-        )
+        self.insert_file(path, ObjectType::Other, compression, Vec::new())
     }
 
     /// Inserts a file into the database
@@ -62,7 +54,6 @@ impl ObjectDB {
     /// * `path` - The path to the file to insert
     /// * `ty` - The type of object to be inserted
     /// * `compression` - The compression to apply to the data
-    /// * `skip_duplicate` - Whether to skip an already existing entry
     /// * `dependencies` - The dependencies of the object to insert
     /// # Returns
     /// The inserted [Object](super::Object)
@@ -73,13 +64,11 @@ impl ObjectDB {
         path: &Path,
         ty: ObjectType,
         compression: ObjectCompression,
-        skip_duplicate: bool,
         dependencies: Vec<ObjectID>,
     ) -> Result<Object, Error> {
         let mut src_file = fs::file_open(path)?;
 
-        let object =
-            self.insert_stream(&mut src_file, ty, compression, skip_duplicate, dependencies)?;
+        let object = self.insert_stream(&mut src_file, ty, compression, dependencies)?;
         debug!("Inserted file {} as {}", path.str_lossy(), object.oid);
 
         Ok(object)
@@ -90,7 +79,6 @@ impl ObjectDB {
     /// * `input` - The input stream to insert
     /// * `ty` - The type of object to be inserted
     /// * `compression` - The compression to apply to the data
-    /// * `skip_duplicate` - Whether to skip an already existing entry
     /// * `dependencies` - The dependencies of the object to insert
     /// # Returns
     /// The inserted [Object](super::Object)
@@ -103,7 +91,6 @@ impl ObjectDB {
         input: &mut R,
         ty: ObjectType,
         compression: ObjectCompression,
-        skip_duplicate: bool,
         dependencies: Vec<ObjectID>,
     ) -> Result<Object, Error> {
         let template = ObjectTemplate::new(input, ty, dependencies);

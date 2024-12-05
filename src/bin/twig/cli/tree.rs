@@ -28,10 +28,6 @@ enum Command {
         #[arg(long, default_value_t = false)]
         stat: bool,
 
-        /// Force overwriting of existing objects
-        #[arg(long, short, default_value_t = false)]
-        force: bool,
-
         /// The path to index
         path: PathBuf,
     },
@@ -63,7 +59,6 @@ impl Command {
             Command::Create {
                 compression,
                 stat,
-                force,
                 path,
             } => {
                 let context = || format!("Indexing {}", path.str_lossy(),);
@@ -71,11 +66,10 @@ impl Command {
                 let driver = FilesystemDriver::new(cli.get_home()?.object_db_path())?;
                 let mut db = ObjectDB::init(Box::new(driver)).ctx(|| "Opening object db")?;
 
-                let tree =
-                    Tree::index(path, &mut db, compression.clone().into(), *force).ctx(context)?;
+                let tree = Tree::index(path, &mut db, compression.clone().into()).ctx(context)?;
 
                 let tree_object = tree
-                    .insert_into_odb(&mut db, compression.clone().into(), *force)
+                    .insert_into_odb(&mut db, compression.clone().into())
                     .ctx(|| "Inserting the tree")
                     .ctx(context)?;
 

@@ -40,6 +40,28 @@ pub fn create_dir_all(path: &Path) -> Result<(), Error> {
         .e_context(|| format!("Creating directory '{}'", path.to_string_lossy()))
 }
 
+/// Creates the parent directory of `path`
+///
+/// Uses [create_dir()]
+pub fn create_parent_dir(path: &Path) -> Result<(), Error> {
+    if let Some(parent) = path.parent() {
+        create_dir(parent)
+    } else {
+        Ok(())
+    }
+}
+
+/// Creates the all parent directories of `path`
+///
+/// Uses [create_dir_all()]
+pub fn create_parent_dir_all(path: &Path) -> Result<(), Error> {
+    if let Some(parent) = path.parent() {
+        create_dir_all(parent)
+    } else {
+        Ok(())
+    }
+}
+
 /// Creates a symlink pointing to `destination`
 ///
 /// Uses the [std::os::unix::fs::symlink()] function

@@ -3,6 +3,12 @@ use crate::{
     model::{Object, ObjectCompression, ObjectID, ObjectReader, ObjectType, SeekRead},
 };
 
+pub mod odb_driver {
+    //! Drivers for the object database
+    mod odb_fs_driver;
+    pub use odb_fs_driver::*;
+}
+
 /// A common trait for all object database drivers that allows layered
 /// access to an object database such as over the filesystem or other sources
 pub trait ODBDriver {

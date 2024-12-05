@@ -16,10 +16,12 @@ use crate::{
         fs::{self, PathUtil},
         parse::versionstring::VersionString,
     },
-    ODB_DEPTH,
 };
 
-use super::{Home, Object, ObjectCompression, ObjectDB, ObjectID, ObjectType, Tree};
+use super::{
+    odb_driver::FilesystemDriver, Home, Object, ObjectCompression, ObjectDB, ObjectID, ObjectType,
+    Tree,
+};
 
 /// A resolved formula that uniquely describes a package's
 /// build instructions to be stored in the object database.
@@ -109,7 +111,8 @@ impl FormulaFile {
             .expect("Parent directory of formula file");
 
         let file_sources = formula.package.sources.clone().unwrap_or_default();
-        let mut object_db = ObjectDB::init(home.object_db_path(), ODB_DEPTH)?;
+        let odb_driver = FilesystemDriver::new(home.object_db_path())?;
+        let mut object_db = ObjectDB::init(Box::new(odb_driver)).ctx(|| "Opening object db")?;
         let temp_dir = home.get_temporary_directory();
 
         // If the formula has some supported architectures,

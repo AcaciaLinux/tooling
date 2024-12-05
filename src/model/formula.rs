@@ -16,10 +16,12 @@ use crate::{
         fs::{self, PathUtil},
         parse::versionstring::VersionString,
     },
-    ODB_DEPTH,
 };
 
-use super::{Home, Object, ObjectCompression, ObjectDB, ObjectID, ObjectType, Tree};
+use super::{
+    odb_driver::FilesystemDriver, Home, Object, ObjectCompression, ObjectDB, ObjectID, ObjectType,
+    Tree,
+};
 
 /// A resolved formula that uniquely describes a package's
 /// build instructions to be stored in the object database.
@@ -109,7 +111,8 @@ impl FormulaFile {
             .expect("Parent directory of formula file");
 
         let file_sources = formula.package.sources.clone().unwrap_or_default();
-        let mut object_db = ObjectDB::init(home.object_db_path(), ODB_DEPTH)?;
+        let odb_driver = FilesystemDriver::new(home.object_db_path())?;
+        let mut object_db = ObjectDB::init(Box::new(odb_driver)).ctx(|| "Opening object db")?;
         let temp_dir = home.get_temporary_directory();
 
         // If the formula has some supported architectures,
@@ -136,8 +139,8 @@ impl FormulaFile {
         }
         .e_context(|| "Resolving formula architecture")?;
 
-        let mut tree = Tree::index(parent, &mut object_db, compression, true)
-            .ctx(|| "Indexing formula files")?;
+        let mut tree =
+            Tree::index(parent, &mut object_db, compression).ctx(|| "Indexing formula files")?;
 
         for source in file_sources {
             let url = source.get_url(&formula.package);
@@ -156,12 +159,12 @@ impl FormulaFile {
             )?;
         }
 
-        let sources_tree = Tree::index(&temp_dir, &mut object_db, compression, true)
-            .ctx(|| "Creating sources tree")?;
+        let sources_tree =
+            Tree::index(&temp_dir, &mut object_db, compression).ctx(|| "Creating sources tree")?;
         tree.merge(sources_tree);
 
         let tree_obj = tree
-            .insert_into_odb(&mut object_db, compression, true)
+            .insert_into_odb(&mut object_db, compression)
             .ctx(|| "Inserting tree")?;
 
         let formula = Formula {
@@ -217,7 +220,6 @@ impl Formula {
             &mut cursor,
             ObjectType::AcaciaFormula,
             compression,
-            true,
             vec![self.tree.clone()],
         )?;
 

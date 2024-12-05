@@ -3,9 +3,8 @@ use std::path::PathBuf;
 use clap::Parser;
 use tooling::{
     error::{Error, ErrorExt},
-    model::{ObjectDB, ObjectID, Tree},
+    model::{odb_driver::FilesystemDriver, ObjectDB, ObjectID, Tree},
     util::{fs::PathUtil, ODBUnpackable},
-    ODB_DEPTH,
 };
 
 use super::{common::Compression, Cli};
@@ -28,10 +27,6 @@ enum Command {
         /// Display a stat of the created tree
         #[arg(long, default_value_t = false)]
         stat: bool,
-
-        /// Force overwriting of existing objects
-        #[arg(long, short, default_value_t = false)]
-        force: bool,
 
         /// The path to index
         path: PathBuf,
@@ -64,19 +59,17 @@ impl Command {
             Command::Create {
                 compression,
                 stat,
-                force,
                 path,
             } => {
                 let context = || format!("Indexing {}", path.str_lossy(),);
 
-                let mut db =
-                    ObjectDB::init(cli.get_home()?.object_db_path(), ODB_DEPTH).ctx(context)?;
+                let driver = FilesystemDriver::new(cli.get_home()?.object_db_path())?;
+                let mut db = ObjectDB::init(Box::new(driver)).ctx(|| "Opening object db")?;
 
-                let tree =
-                    Tree::index(path, &mut db, compression.clone().into(), *force).ctx(context)?;
+                let tree = Tree::index(path, &mut db, compression.clone().into()).ctx(context)?;
 
                 let tree_object = tree
-                    .insert_into_odb(&mut db, compression.clone().into(), *force)
+                    .insert_into_odb(&mut db, compression.clone().into())
                     .ctx(|| "Inserting the tree")
                     .ctx(context)?;
 
@@ -89,8 +82,8 @@ impl Command {
                 println!("{}", tree_object.oid);
             }
             Command::Deploy { tree, root } => {
-                let db = ObjectDB::init(cli.get_home()?.object_db_path(), ODB_DEPTH)
-                    .e_context(|| "Opening object database")?;
+                let driver = FilesystemDriver::new(cli.get_home()?.object_db_path())?;
+                let db = ObjectDB::init(Box::new(driver)).ctx(|| "Opening object db")?;
 
                 let mut tree_object = db.read(tree).ctx(|| "Opening tree object")?;
 
@@ -99,8 +92,8 @@ impl Command {
                 tree.deploy(root, &db).ctx(|| "Deploying tree")?;
             }
             Command::List { oid } => {
-                let db = ObjectDB::init(cli.get_home()?.object_db_path(), ODB_DEPTH)
-                    .ctx(|| "Opening object database")?;
+                let driver = FilesystemDriver::new(cli.get_home()?.object_db_path())?;
+                let db = ObjectDB::init(Box::new(driver)).ctx(|| "Opening object db")?;
 
                 let mut object = db.read(oid).ctx(|| "Reading tree object")?;
                 let tree =

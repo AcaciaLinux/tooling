@@ -3,9 +3,8 @@ use std::{io, path::PathBuf};
 use clap::Parser;
 use tooling::{
     error::{Error, ErrorExt, ErrorType},
-    model::{Object, ObjectDB, ObjectID, ObjectType},
+    model::{odb_driver::FilesystemDriver, Object, ObjectDB, ObjectID, ObjectType},
     util::fs::{file_create, PathUtil},
-    ODB_DEPTH,
 };
 
 use super::{common::Compression, Cli};
@@ -34,10 +33,6 @@ enum Command {
         #[arg(long, short, default_value_t = Compression::None)]
         compression: Compression,
 
-        /// Insert new objects even if they already exist
-        #[arg(long, short, default_value = "false")]
-        force: bool,
-
         /// The path to the file to put into the object database
         path: PathBuf,
     },
@@ -54,7 +49,8 @@ enum Command {
 
 impl CommandOdb {
     pub fn run(&self, cli: &Cli) -> Result<i32, Error> {
-        let db = ObjectDB::init(cli.get_home()?.object_db_path(), ODB_DEPTH)?;
+        let driver = FilesystemDriver::new(cli.get_home()?.object_db_path())?;
+        let db = ObjectDB::init(Box::new(driver)).ctx(|| "Opening object db")?;
 
         self.command.run(cli, db)
     }
@@ -85,17 +81,12 @@ impl Command {
                 }
                 .e_context(|| "Copying object data")?;
             }
-            Command::Put {
-                compression,
-                force,
-                path,
-            } => {
+            Command::Put { compression, path } => {
                 let object = odb
                     .insert_file(
                         path,
                         ObjectType::Other,
                         compression.clone().into(),
-                        !force,
                         Vec::new(),
                     )
                     .e_context(|| format!("Putting {} into object database", path.str_lossy()))?;

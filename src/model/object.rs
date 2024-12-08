@@ -67,14 +67,90 @@ impl Object {
         Ok(res)
     }
 
+    /// Creates an object from an object template
+    /// # Arguments
+    /// * `input` - The stream to read the object data from
+    /// * `output` - The stream to write the (compressed) object data to
+    /// * `compression` - The compression to apply when inserting the stream
+    pub fn create_from_template<W: Write + Seek>(
+        input: ObjectTemplate,
+        output: W,
+        compression: ObjectCompression,
+    ) -> Result<Self, Error> {
+        let (stream, ty, dependencies) = input.split_up();
+
+        match stream {
+            ObjectTemplateStream::Normal(stream) => {
+                Self::create_from_stream(stream, output, dependencies, ty, compression)
+            }
+            ObjectTemplateStream::Prehashed { stream, oid } => {
+                Self::create_from_prehashed(stream, oid, output, dependencies, ty, compression)
+            }
+        }
+    }
+
+    /// Creates an object by reading in prehashed data
+    /// # Arguments
+    /// * `input` - The input stream to read from
+    /// * `oid` - The prehashed object id to expect from `input` (gets checked)
+    /// * `output` - The output stream to write to
+    /// * `dependencies` - The dependencies of the new object
+    /// * `ty` - The type of object at hand
+    /// * `compression` - The compression to apply when savin to `output`
+    pub fn create_from_prehashed<W: Write>(
+        input: &mut dyn Read,
+        oid: ObjectID,
+        mut output: W,
+        dependencies: Vec<ObjectID>,
+        ty: ObjectType,
+        compression: ObjectCompression,
+    ) -> Result<Self, Error> {
+        let object = Self {
+            oid: oid.clone(),
+            dependencies,
+            ty,
+            compression,
+        };
+
+        object.pack_header(&mut output)?;
+
+        let output: Box<dyn Write> = match compression {
+            ObjectCompression::None => Box::new(output),
+            ObjectCompression::Xz => {
+                let stream = xz::stream::Stream::new_easy_encoder(6, xz::stream::Check::None)
+                    .ctx(|| "Creating xz stream")?;
+
+                Box::new(xz::write::XzEncoder::new_stream(output, stream))
+            }
+        };
+
+        let mut output = ObjectIDHasher::new(output, &object.dependencies);
+
+        std::io::copy(input, &mut output).ctx(|| "Copying object contents")?;
+
+        let (_, hashed_oid) = output.finalize();
+
+        // Check that the calculated OID matches the prehashed one
+        if hashed_oid != oid {
+            return Err(Error::new(ErrorType::ObjectDB(
+                ObjectDBError::ObjectIDMismatch {
+                    expected: oid,
+                    received: hashed_oid,
+                },
+            )));
+        }
+
+        Ok(object)
+    }
+
     /// Creates a new object from a stream and creates an object file
     /// # Arguments
     /// * `input` - The input stream to use as the object data
     /// * `output` - The output stream to write the object file's contents to
     /// * `ty` - The type of object at hand
     /// * `compression` - The type of compression to use when inserting the data
-    pub fn create_from_stream<R: Read + Seek, W: Write + Seek>(
-        input: &mut R,
+    pub fn create_from_stream<W: Write + Seek>(
+        input: &mut dyn SeekRead,
         mut output: W,
         dependencies: Vec<ObjectID>,
         ty: ObjectType,
@@ -95,24 +171,7 @@ impl Object {
             compression,
         };
 
-        output
-            .write_all("AOBJ".as_bytes())
-            .ctx(|| "Writing object magic")?;
-        output.write_all(&[0]).ctx(|| "Writing object version")?;
-        object.oid.pack(&mut output).ctx(|| "Writing object ID")?;
-        object.ty.pack(&mut output).ctx(|| "Writing object type")?;
-        object
-            .compression
-            .pack(&mut output)
-            .ctx(|| "Writing object compression")?;
-
-        (object.dependencies.len() as u16)
-            .pack(&mut output)
-            .ctx(|| "Packing dependencies count")?;
-
-        for dep in &object.dependencies {
-            dep.pack(&mut output).ctx(|| "Writing dependency")?;
-        }
+        object.pack_header(&mut output)?;
 
         let mut output: Box<dyn Write> = match compression {
             ObjectCompression::None => Box::new(output),
@@ -131,6 +190,31 @@ impl Object {
         std::io::copy(input, &mut output).e_context(|| "Copying object contents")?;
 
         Ok(object)
+    }
+
+    /// Packs the object header contents to `output`
+    /// # Arguments
+    /// * `output` - The stream to write to
+    fn pack_header<W: Write>(&self, output: &mut W) -> Result<(), Error> {
+        output
+            .write_all("AOBJ".as_bytes())
+            .ctx(|| "Writing object magic")?;
+        output.write_all(&[0]).ctx(|| "Writing object version")?;
+        self.oid.pack(output).ctx(|| "Writing object ID")?;
+        self.ty.pack(output).ctx(|| "Writing object type")?;
+        self.compression
+            .pack(output)
+            .ctx(|| "Writing object compression")?;
+
+        (self.dependencies.len() as u16)
+            .pack(output)
+            .ctx(|| "Packing dependencies count")?;
+
+        for dep in &self.dependencies {
+            dep.pack(output).ctx(|| "Writing dependency")?;
+        }
+
+        Ok(())
     }
 }
 

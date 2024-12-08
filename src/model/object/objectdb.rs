@@ -170,12 +170,20 @@ impl ObjectDB {
 pub enum ObjectDBError {
     /// An object was not found in the database
     ObjectNotFound(ObjectID),
+    ObjectIDMismatch {
+        expected: ObjectID,
+        received: ObjectID,
+    },
 }
 
 impl Display for ObjectDBError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ObjectNotFound(oid) => write!(f, "Object {oid} not found"),
+            Self::ObjectIDMismatch { expected, received } => write!(
+                f,
+                "Object ID mismatch - expected {expected}, got {received}"
+            ),
         }
     }
 }

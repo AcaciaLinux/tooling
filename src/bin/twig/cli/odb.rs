@@ -3,7 +3,9 @@ use std::{io, path::PathBuf};
 use clap::Parser;
 use tooling::{
     error::{Error, ErrorExt, ErrorType},
-    model::{odb_driver::FilesystemDriver, Object, ObjectDB, ObjectID, ObjectType},
+    model::{
+        odb_driver::FilesystemDriver, Object, ObjectCompression, ObjectDB, ObjectID, ObjectType,
+    },
     util::fs::{file_create, PathUtil},
 };
 
@@ -35,6 +37,19 @@ enum Command {
 
         /// The path to the file to put into the object database
         path: PathBuf,
+    },
+    /// Pull an object from another object database
+    Pull {
+        /// The path to the other object database root
+        #[arg(long)]
+        other: PathBuf,
+
+        /// Whether to recursively pull dependencies or not
+        #[arg(long, short, action)]
+        recursive: bool,
+
+        /// The object ID of the object to pull
+        object: ObjectID,
     },
     /// Print the dependencies of an object
     Dependencies {
@@ -91,6 +106,21 @@ impl Command {
                     )
                     .e_context(|| format!("Putting {} into object database", path.str_lossy()))?;
                 println!("{}", object.oid);
+            }
+            Command::Pull {
+                other,
+                recursive,
+                object,
+            } => {
+                let other_driver = FilesystemDriver::new(other.clone())?;
+                let other_odb = ObjectDB::init(Box::new(other_driver))?;
+
+                odb.pull(
+                    &other_odb,
+                    object.clone(),
+                    ObjectCompression::Xz,
+                    *recursive,
+                )?;
             }
             Command::Dependencies { tree, oid } => {
                 let object = odb.get_object(oid)?;

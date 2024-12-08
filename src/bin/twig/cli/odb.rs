@@ -36,6 +36,23 @@ enum Command {
         /// The path to the file to put into the object database
         path: PathBuf,
     },
+    /// Pull an object from another object database
+    Pull {
+        /// The path to the other object database root
+        #[arg(long)]
+        other: PathBuf,
+
+        /// The compression method to use
+        #[arg(long, short, default_value_t = Compression::None)]
+        compression: Compression,
+
+        /// Whether to recursively pull dependencies or not
+        #[arg(long, short, action)]
+        recursive: bool,
+
+        /// The object ID of the object to pull
+        object: ObjectID,
+    },
     /// Print the dependencies of an object
     Dependencies {
         /// List the dependencies in a tree form
@@ -91,6 +108,22 @@ impl Command {
                     )
                     .e_context(|| format!("Putting {} into object database", path.str_lossy()))?;
                 println!("{}", object.oid);
+            }
+            Command::Pull {
+                other,
+                compression,
+                recursive,
+                object,
+            } => {
+                let other_driver = FilesystemDriver::new(other.clone())?;
+                let other_odb = ObjectDB::init(Box::new(other_driver))?;
+
+                odb.pull(
+                    &other_odb,
+                    object.clone(),
+                    compression.clone().into(),
+                    *recursive,
+                )?;
             }
             Command::Dependencies { tree, oid } => {
                 let object = odb.get_object(oid)?;

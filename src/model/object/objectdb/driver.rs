@@ -32,6 +32,11 @@ pub trait ODBDriver {
     /// # Returns
     /// The object or `None` if it is not found
     fn retrieve(&self, oid: &ObjectID) -> Result<Option<ObjectReader>, Error>;
+
+    /// Returns whether this driver contains the object with `oid`
+    /// # Arguments
+    /// * `oid` - The object id to search for
+    fn exists(&self, oid: &ObjectID) -> bool;
 }
 
 /// A stream that provides the data of the object to

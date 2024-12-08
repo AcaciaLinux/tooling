@@ -85,4 +85,10 @@ impl ODBDriver for FilesystemDriver {
             ObjectReader::from_stream(file).ctx(|| "Reading object")?,
         ))
     }
+
+    fn exists(&self, oid: &ObjectID) -> bool {
+        let file_path = self.get_oid_path(oid);
+
+        file_path.exists()
+    }
 }

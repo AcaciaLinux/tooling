@@ -1,6 +1,6 @@
 use std::{
     fmt::{Debug, Display},
-    io::{copy, Read},
+    io::{copy, Write},
     path::PathBuf,
     str::FromStr,
 };
@@ -13,6 +13,8 @@ use crate::{
     error::{Error, ErrorExt},
     util::{Packable, Unpackable},
 };
+
+use super::SeekRead;
 
 /// Represents an object id (hash)
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -57,8 +59,8 @@ impl ObjectID {
     ///
     /// # Seeking
     /// This will seek to the end of `stream` and will not restore its position
-    pub fn new_from_stream<R: Read>(
-        stream: &mut R,
+    pub fn new_from_stream(
+        stream: &mut dyn SeekRead,
         dependencies: &Vec<ObjectID>,
     ) -> Result<Self, Error> {
         let mut hasher = Sha256::new();
@@ -172,5 +174,51 @@ impl FromStr for ObjectID {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::new_from_hex(s)
+    }
+}
+
+/// A wrapper around a hasher and an output
+/// that hashes the bytes that get written
+/// to it and passes them on to the `output`
+pub struct ObjectIDHasher<W: Write> {
+    hasher: Sha256,
+    output: W,
+}
+
+impl<W: Write> ObjectIDHasher<W> {
+    /// Creates a new object id hasher
+    /// # Arguments
+    /// * `output` - The output stream to write the data to
+    /// * `dependencies` - The dependencies for the object data
+    pub fn new(output: W, dependencies: &Vec<ObjectID>) -> Self {
+        let mut hasher = Sha256::new();
+
+        for dependency in dependencies {
+            hasher.update(dependency.bytes());
+        }
+
+        Self { hasher, output }
+    }
+
+    /// Finalizes the hasher and returns the individual components
+    pub fn finalize(self) -> (W, ObjectID) {
+        (
+            self.output,
+            ObjectID {
+                hash: self.hasher.finalize().into(),
+            },
+        )
+    }
+}
+
+impl<W: Write> Write for ObjectIDHasher<W> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let _ = self.hasher.write(buf)?;
+        self.output.write(buf)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.output.flush()?;
+        self.hasher.flush()
     }
 }

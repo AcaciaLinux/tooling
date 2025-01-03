@@ -72,7 +72,7 @@ impl ODBDriver for FilesystemDriver {
         Ok(object)
     }
 
-    fn retrieve(&self, oid: &ObjectID) -> Result<Option<ObjectReader>, crate::error::Error> {
+    fn try_retrieve(&self, oid: &ObjectID) -> Result<Option<ObjectReader>, crate::error::Error> {
         let file_path = self.get_oid_path(oid);
 
         if !file_path.exists() {

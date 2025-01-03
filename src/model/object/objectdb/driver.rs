@@ -1,9 +1,11 @@
 use std::io::Read;
 
 use crate::{
-    error::Error,
+    error::{Error, ErrorType},
     model::{Object, ObjectCompression, ObjectID, ObjectReader, ObjectType, SeekRead},
 };
+
+use super::ObjectDBError;
 
 pub mod odb_driver {
     //! Drivers for the object database
@@ -31,7 +33,16 @@ pub trait ODBDriver {
     /// * `oid` - The object ID of the object to retrieve
     /// # Returns
     /// The object or `None` if it is not found
-    fn retrieve(&self, oid: &ObjectID) -> Result<Option<ObjectReader>, Error>;
+    fn try_retrieve(&self, oid: &ObjectID) -> Result<Option<ObjectReader>, Error>;
+
+    fn retrieve(&self, oid: &ObjectID) -> Result<ObjectReader, Error> {
+        match self.try_retrieve(oid)? {
+            None => Err(Error::new(ErrorType::ObjectDB(
+                ObjectDBError::ObjectNotFound(oid.clone()),
+            ))),
+            Some(r) => Ok(r),
+        }
+    }
 
     /// Returns whether this driver contains the object with `oid`
     /// # Arguments

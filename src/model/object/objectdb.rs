@@ -104,7 +104,7 @@ impl ObjectDB {
     /// # Returns
     /// `None` if the object does not exist, else an [ObjectReader](super::ObjectReader)
     pub fn try_read(&self, oid: &ObjectID) -> Result<Option<ObjectReader>, Error> {
-        self.driver.retrieve(oid)
+        self.driver.try_retrieve(oid)
     }
 
     /// Reads an object from the database
@@ -113,12 +113,7 @@ impl ObjectDB {
     /// # Returns
     /// An [ObjectReader](super::ObjectReader) for reading object data
     pub fn read(&self, oid: &ObjectID) -> Result<ObjectReader, Error> {
-        match self.try_read(oid)? {
-            None => Err(Error::new(ErrorType::ObjectDB(
-                ObjectDBError::ObjectNotFound(oid.clone()),
-            ))),
-            Some(r) => Ok(r),
-        }
+        self.driver.retrieve(oid)
     }
 
     /// Reads an object from the database and copies it to a file
@@ -147,7 +142,7 @@ impl ObjectDB {
     /// # Returns
     /// `None` if the object does not exist, else an [Object](super::Object)
     pub fn try_get_object(&self, oid: &ObjectID) -> Result<Option<Object>, Error> {
-        Ok(self.driver.retrieve(oid)?.map(|o| o.object))
+        Ok(self.driver.try_retrieve(oid)?.map(|o| o.object))
     }
 
     /// Reads an object from the database

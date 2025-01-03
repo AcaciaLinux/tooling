@@ -104,7 +104,7 @@ impl ObjectDB {
     /// # Returns
     /// `None` if the object does not exist, else an [ObjectReader](super::ObjectReader)
     pub fn try_read(&self, oid: &ObjectID) -> Result<Option<ObjectReader>, Error> {
-        self.driver.retrieve(oid)
+        self.driver.try_retrieve(oid)
     }
 
     /// Reads an object from the database
@@ -113,12 +113,7 @@ impl ObjectDB {
     /// # Returns
     /// An [ObjectReader](super::ObjectReader) for reading object data
     pub fn read(&self, oid: &ObjectID) -> Result<ObjectReader, Error> {
-        match self.try_read(oid)? {
-            None => Err(Error::new(ErrorType::ObjectDB(
-                ObjectDBError::ObjectNotFound(oid.clone()),
-            ))),
-            Some(r) => Ok(r),
-        }
+        self.driver.retrieve(oid)
     }
 
     /// Reads an object from the database and copies it to a file
@@ -147,7 +142,7 @@ impl ObjectDB {
     /// # Returns
     /// `None` if the object does not exist, else an [Object](super::Object)
     pub fn try_get_object(&self, oid: &ObjectID) -> Result<Option<Object>, Error> {
-        Ok(self.driver.retrieve(oid)?.map(|o| o.object))
+        Ok(self.driver.try_retrieve(oid)?.map(|o| o.object))
     }
 
     /// Reads an object from the database
@@ -163,6 +158,39 @@ impl ObjectDB {
             Some(r) => Ok(r),
         }
     }
+
+    /// Pulls `oid` from `other`
+    /// # Arguments
+    /// * `other` - The object database to pull the data from
+    /// * `oid` - The object id of the object to pull
+    /// * `compression` - The compression to apply when inserting
+    /// * `recursive` - Whether to operate recursively
+    pub fn pull(
+        &mut self,
+        other: &ObjectDB,
+        oid: ObjectID,
+        compression: ObjectCompression,
+        recursive: bool,
+    ) -> Result<(), Error> {
+        self.driver
+            .pull(other.driver.as_ref(), oid, compression, recursive)
+    }
+
+    /// Pulls `oid` from `other` driver
+    /// # Arguments
+    /// * `other` - The object database driver to pull the data from
+    /// * `oid` - The object id of the object to pull
+    /// * `compression` - The compression to apply when inserting
+    /// * `recursive` - Whether to operate recursively
+    pub fn pull_from_driver(
+        &mut self,
+        other: &dyn ODBDriver,
+        oid: ObjectID,
+        compression: ObjectCompression,
+        recursive: bool,
+    ) -> Result<(), Error> {
+        self.driver.pull(other, oid, compression, recursive)
+    }
 }
 
 /// An error that ocurred while working with the object database
@@ -170,12 +198,20 @@ impl ObjectDB {
 pub enum ObjectDBError {
     /// An object was not found in the database
     ObjectNotFound(ObjectID),
+    ObjectIDMismatch {
+        expected: ObjectID,
+        received: ObjectID,
+    },
 }
 
 impl Display for ObjectDBError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ObjectNotFound(oid) => write!(f, "Object {oid} not found"),
+            Self::ObjectIDMismatch { expected, received } => write!(
+                f,
+                "Object ID mismatch - expected {expected}, got {received}"
+            ),
         }
     }
 }

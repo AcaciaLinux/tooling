@@ -52,24 +52,18 @@ impl FilesystemDriver {
 impl ODBDriver for FilesystemDriver {
     fn insert(
         &mut self,
-        mut object_template: ObjectTemplate,
+        object_template: ObjectTemplate,
         compression: ObjectCompression,
     ) -> Result<Object, Error> {
         let temp_file_path = self.get_temp_file_path();
         fs::create_parent_dir_all(&temp_file_path)
             .ctx(|| "Creating temporary object file parent")?;
 
-        let mut temp_file =
+        let temp_file =
             fs::file_create(&temp_file_path).ctx(|| "Creating temporary object file")?;
 
-        let object = Object::create_from_stream(
-            &mut object_template.stream,
-            &mut temp_file,
-            object_template.dependencies,
-            object_template.ty,
-            compression,
-        )
-        .ctx(|| "Creating object file")?;
+        let object = Object::create_from_template(object_template, temp_file, compression)
+            .ctx(|| "Creating object file")?;
 
         let file_path = self.get_oid_path(&object.oid);
         fs::create_parent_dir_all(&file_path).ctx(|| "Creating object parent directory")?;
@@ -78,7 +72,7 @@ impl ODBDriver for FilesystemDriver {
         Ok(object)
     }
 
-    fn retrieve(&self, oid: &ObjectID) -> Result<Option<ObjectReader>, crate::error::Error> {
+    fn try_retrieve(&self, oid: &ObjectID) -> Result<Option<ObjectReader>, crate::error::Error> {
         let file_path = self.get_oid_path(oid);
 
         if !file_path.exists() {
@@ -90,5 +84,11 @@ impl ODBDriver for FilesystemDriver {
         Ok(Some(
             ObjectReader::from_stream(file).ctx(|| "Reading object")?,
         ))
+    }
+
+    fn exists(&self, oid: &ObjectID) -> bool {
+        let file_path = self.get_oid_path(oid);
+
+        file_path.exists()
     }
 }

@@ -25,6 +25,8 @@ The `twig odb` command has the following subcommands:
 
 - [`twig odb put`](#inserting-objects-into-the-object-database): Put a new object into the object database
 
+- [`twig odb pull`](#pulling-objects-from-another-object-database): Pull objects from another object database
+
 ### Retrieving objects from the object database
 
 This subcommand facilitates retrieving object contents from the object database.
@@ -49,5 +51,16 @@ twig odb put [--compression {none;xz}] [--force] <PATH>
 > [!TIP]
 > Normally, twig checks for an already existing object in the database.
 > The `--force` flag will force twig to overwrite the existing object.
+
+### Pulling objects from another object database
+
+This subcommand allows a user to pull (fetch) objects from another object database into the current local one.
+
+```bash
+twig odb pull [OPTIONS] --other <OTHER> <OBJECT>
+```
+
+> [!TIP]
+> Normally, twig will not fetch dependencies, but using the `--recursive`/`-r` this can be achieved
 
 ## Tree utilities (`twig tree`)

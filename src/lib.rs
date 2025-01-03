@@ -1,7 +1,5 @@
 //! This crate provides tooling for the [AcaciaLinux](https://github.com/AcaciaLinux) project
 
-extern crate lazy_static;
-
 use std::path::PathBuf;
 
 use base64::engine::GeneralPurpose;

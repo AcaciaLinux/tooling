@@ -1,5 +1,7 @@
 use std::io::Read;
 
+use log::debug;
+
 use crate::{
     error::{Error, ErrorType},
     model::{Object, ObjectCompression, ObjectID, ObjectReader, ObjectType, SeekRead},
@@ -48,6 +50,44 @@ pub trait ODBDriver {
     /// # Arguments
     /// * `oid` - The object id to search for
     fn exists(&self, oid: &ObjectID) -> bool;
+
+    /// Pulls `oid` from `other`
+    /// # Arguments
+    /// * `other` - The object database driver to pull the data from
+    /// * `oid` - The object id of the object to pull
+    /// * `compression` - The compression to apply when inserting
+    /// * `recursive` - Whether to operate recursively
+    fn pull(
+        &mut self,
+        other: &dyn ODBDriver,
+        oid: ObjectID,
+        compression: ObjectCompression,
+        recursive: bool,
+    ) -> Result<(), Error> {
+        let exists = self.exists(&oid);
+
+        let object = if exists {
+            debug!("[SKIP] Pulling {oid}");
+            self.retrieve(&oid)?.object
+        } else {
+            debug!("Pulling {oid}");
+            let mut object = other.retrieve(&oid)?;
+            let ty = object.object.ty;
+            let dependencies = object.object.dependencies.clone();
+
+            let template = ObjectTemplate::new_prehashed(&mut object, oid, ty, dependencies);
+
+            self.insert(template, compression)?
+        };
+
+        if recursive {
+            for dependency in object.dependencies {
+                self.pull(other, dependency, compression, recursive)?;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 /// A stream that provides the data of the object to

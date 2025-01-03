@@ -172,29 +172,24 @@ impl ObjectDB {
         compression: ObjectCompression,
         recursive: bool,
     ) -> Result<(), Error> {
-        let exists = self.driver.exists(&oid);
+        self.driver
+            .pull(other.driver.as_ref(), oid, compression, recursive)
+    }
 
-        let object = if exists {
-            debug!("[SKIP] Pulling {oid}");
-            self.get_object(&oid)?
-        } else {
-            debug!("Pulling {oid}");
-            let mut object = other.read(&oid)?;
-            let ty = object.object.ty;
-            let dependencies = object.object.dependencies.clone();
-
-            let template = ObjectTemplate::new_prehashed(&mut object, oid, ty, dependencies);
-
-            self.driver.insert(template, compression)?
-        };
-
-        if recursive {
-            for dependency in object.dependencies {
-                self.pull(other, dependency, compression, recursive)?;
-            }
-        }
-
-        Ok(())
+    /// Pulls `oid` from `other` driver
+    /// # Arguments
+    /// * `other` - The object database driver to pull the data from
+    /// * `oid` - The object id of the object to pull
+    /// * `compression` - The compression to apply when inserting
+    /// * `recursive` - Whether to operate recursively
+    pub fn pull_from_driver(
+        &mut self,
+        other: &dyn ODBDriver,
+        oid: ObjectID,
+        compression: ObjectCompression,
+        recursive: bool,
+    ) -> Result<(), Error> {
+        self.driver.pull(other, oid, compression, recursive)
     }
 }
 

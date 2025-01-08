@@ -16,56 +16,89 @@ use crate::{
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FormulaFile {
     /// The version of the file
-    pub version: u32,
-    /// There can be multiple formulae
-    pub package: FormulaPackage,
-}
+    pub file_version: u32,
 
-/// A package built by the formula
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FormulaPackage {
+    /// The name of the formula
     pub name: String,
+    /// The version of the formula
     pub version: String,
     pub description: String,
 
+    /// The dependencies needed by the building system
     pub host_dependencies: Option<Vec<VersionString>>,
+    /// The dependencies needed to run and build the target package
     pub target_dependencies: Option<Vec<VersionString>>,
+    /// Additional dependencies that the system did not pick up
     pub extra_dependencies: Option<Vec<VersionString>>,
 
-    #[serde(default = "default_formula_package_strip")]
-    pub strip: bool,
+    /// A list of source needed to build the formula
+    pub sources: Option<Vec<FormulaFileSource>>,
 
+    /// The architecture the formula can be built for
     #[serde(default, deserialize_with = "deserialize_archs")]
     pub arch: Option<Vec<Architecture>>,
 
+    /// A list of packages provided by this formula
+    #[serde(default)]
+    pub packages: IndexMap<String, FormulaFilePackage>,
+
+    /// The 'prepare' build step
     pub prepare: Option<String>,
+    /// The 'build' build step
     pub build: Option<String>,
+    /// The 'check' build step
     pub check: Option<String>,
+    /// The 'package' build step
     pub package: Option<String>,
 
-    pub sources: Option<Vec<FormulaPackageSource>>,
+    /// Whether or not to strip the resulting binaries
+    #[serde(default = "default_formula_strip")]
+    pub strip: bool,
 
+    /// The layout of the package's output files
     #[serde(default)]
     pub layout: IndexMap<String, Vec<String>>,
 }
 
 /// A source for a package
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FormulaPackageSource {
+pub struct FormulaFileSource {
     pub url: String,
     pub dest: Option<String>,
 
-    #[serde(default = "default_formula_package_source_extract")]
+    #[serde(default = "default_formula_source_extract")]
     pub extract: bool,
 }
 
-impl NamedPackage for FormulaPackage {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FormulaFilePackage {
+    /// The description for the package
+    pub description: Option<String>,
+
+    /// Whether or not to strip the resulting binaries
+    pub strip: Option<bool>,
+
+    /// The 'prepare' build step
+    pub prepare: Option<String>,
+    /// The 'build' build step
+    pub build: Option<String>,
+    /// The 'check' build step
+    pub check: Option<String>,
+    /// The 'package' build step
+    pub package: Option<String>,
+
+    /// The layout of the package's output files
+    #[serde(default)]
+    pub layout: IndexMap<String, Vec<String>>,
+}
+
+impl NamedPackage for FormulaFile {
     fn get_name(&self) -> &str {
         &self.name
     }
 }
 
-impl VersionedPackage for FormulaPackage {
+impl VersionedPackage for FormulaFile {
     fn get_version(&self) -> &str {
         &self.version
     }
@@ -79,21 +112,21 @@ impl VersionedPackage for FormulaPackage {
     }
 }
 
-impl NameVersionPackage for FormulaPackage {}
+impl NameVersionPackage for FormulaFile {}
 
-impl CorePackage for FormulaPackage {}
+impl CorePackage for FormulaFile {}
 
 /// Provides the default value for the `strip` field: `true`
-fn default_formula_package_strip() -> bool {
+fn default_formula_strip() -> bool {
     true
 }
 
 /// Provides the default value for the `extract` field: `false`
-fn default_formula_package_source_extract() -> bool {
+fn default_formula_source_extract() -> bool {
     false
 }
 
-impl FormulaPackage {
+impl FormulaFile {
     /// Returns the full name of the package, using the supplied architecture
     pub fn get_full_name(&self, arch: &str) -> String {
         format!("{arch}-{}-{}", self.name, self.version)
@@ -105,7 +138,7 @@ impl FormulaPackage {
     }
 }
 
-impl FormulaPackageSource {
+impl FormulaFileSource {
     /// Returns the URL of the source with the variables replaced using [crate::util::string::replace_package_variables()]
     /// # Arguments
     /// * `package` - The package to pull the variables from

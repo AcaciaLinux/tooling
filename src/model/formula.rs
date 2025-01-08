@@ -34,10 +34,6 @@ pub struct Formula {
     /// A short description of the package's contents
     pub description: String,
 
-    /// Whether the package's binaries should be stripped
-    /// using the `strip` command
-    pub strip: bool,
-
     /// The architecture the package is built for
     pub arch: Option<Architecture>,
 
@@ -52,6 +48,27 @@ pub struct Formula {
     /// by the dependency checker
     pub extra_dependencies: Vec<ObjectID>,
 
+    /// The packages that originate from this formula
+    pub packages: IndexMap<String, FormulaPackage>,
+
+    /// The tree of files that is shipped with this formula
+    pub tree: ObjectID,
+
+    /// The instructions for the `prepare` step
+    pub prepare: Option<String>,
+    /// The instructions for the `build` step
+    pub build: Option<String>,
+    /// The instructions for the `check` step
+    pub check: Option<String>,
+    /// The instructions for the `package` step
+    pub package: Option<String>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct FormulaPackage {
+    /// A short description of the package's contents
+    pub description: String,
+
     /// The instructions for the `prepare` step
     pub prepare: Option<String>,
     /// The instructions for the `build` step
@@ -61,12 +78,13 @@ pub struct Formula {
     /// The instructions for the `package` step
     pub package: Option<String>,
 
+    /// Whether the package's binaries should be stripped
+    /// using the `strip` command
+    pub strip: bool,
+
     /// The layout describing the purposes and
     /// special directories within the package root
     pub layout: IndexMap<String, Vec<String>>,
-
-    /// The tree of files that is shipped with this formula
-    pub tree: ObjectID,
 }
 
 /// Helper function to resolve an optional vector of
@@ -110,14 +128,14 @@ impl FormulaFile {
             .parent()
             .expect("Parent directory of formula file");
 
-        let file_sources = formula.package.sources.clone().unwrap_or_default();
+        let file_sources = formula.sources.clone().unwrap_or_default();
         let odb_driver = FilesystemDriver::new(home.object_db_path())?;
         let mut object_db = ObjectDB::init(Box::new(odb_driver)).ctx(|| "Opening object db")?;
         let temp_dir = home.get_temporary_directory();
 
         // If the formula has some supported architectures,
         // make sure the build architecture is in them
-        let architecture = match formula.package.get_architectures() {
+        let architecture = match formula.get_architectures() {
             None => Ok(None),
             Some(archs) => {
                 let supported_archs: Vec<&Architecture> = archs
@@ -143,8 +161,8 @@ impl FormulaFile {
             Tree::index(parent, &mut object_db, compression).ctx(|| "Indexing formula files")?;
 
         for source in file_sources {
-            let url = source.get_url(&formula.package);
-            let dest = PathBuf::from(source.get_dest(&formula.package));
+            let url = source.get_url(&formula);
+            let dest = PathBuf::from(source.get_dest(&formula));
 
             let path = temp_dir.join(&dest);
             if let Some(parent) = path.parent() {
@@ -167,25 +185,27 @@ impl FormulaFile {
             .insert_into_odb(&mut object_db, compression)
             .ctx(|| "Inserting tree")?;
 
-        let formula = Formula {
-            name: formula.package.name,
-            version: formula.package.version,
-            description: formula.package.description,
+        let packages = parse_formula_packages(formula.clone());
 
-            strip: formula.package.strip,
+        let formula = Formula {
+            name: formula.name,
+            version: formula.version,
+            description: formula.description,
+
             arch: architecture,
 
-            host_dependencies: resolve_packages(formula.package.host_dependencies),
-            target_dependencies: resolve_packages(formula.package.target_dependencies),
-            extra_dependencies: resolve_packages(formula.package.extra_dependencies),
+            host_dependencies: resolve_packages(formula.host_dependencies),
+            target_dependencies: resolve_packages(formula.target_dependencies),
+            extra_dependencies: resolve_packages(formula.extra_dependencies),
 
-            prepare: formula.package.prepare,
-            build: formula.package.build,
-            check: formula.package.check,
-            package: formula.package.package,
-
-            layout: formula.package.layout,
             tree: tree_obj.oid,
+
+            packages,
+
+            prepare: formula.prepare,
+            build: formula.build,
+            check: formula.check,
+            package: formula.package,
         };
 
         let object = formula.insert(&mut object_db, compression)?;
@@ -230,4 +250,52 @@ impl Formula {
 
         Ok(object)
     }
+}
+
+/// Parses and resolves the 'packages' field of a formula,
+/// cloning the formula if there are no packages defined,
+/// otherwise using the packages as overrides to the formula's defaults
+/// # Arguments
+/// * `formula_file` - The source from the parsed formula file
+fn parse_formula_packages(formula_file: FormulaFile) -> IndexMap<String, FormulaPackage> {
+    let mut packages = IndexMap::new();
+
+    let description = formula_file.description;
+    let strip = formula_file.strip;
+    let layout = formula_file.layout;
+
+    if formula_file.packages.is_empty() {
+        // If the 'packages' field is empty, we clone the formula as a default package
+        let package = FormulaPackage {
+            description,
+            prepare: None,
+            build: None,
+            check: None,
+            package: None,
+            strip,
+            layout,
+        };
+
+        packages.insert(formula_file.name, package);
+    } else {
+        // Otherwise, iterate over the packages and override formula's presets
+        for (source_name, source_package) in formula_file.packages {
+            let mut layout = layout.clone();
+            layout.extend(source_package.layout);
+
+            let package = FormulaPackage {
+                description: source_package.description.unwrap_or(description.clone()),
+                prepare: source_package.prepare,
+                build: source_package.build,
+                check: source_package.check,
+                package: source_package.package,
+                strip: source_package.strip.unwrap_or(strip),
+                layout,
+            };
+
+            packages.insert(source_name, package);
+        }
+    }
+
+    packages
 }

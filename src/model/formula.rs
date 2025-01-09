@@ -69,6 +69,11 @@ pub struct FormulaPackage {
     /// A short description of the package's contents
     pub description: String,
 
+    /// Dependencies that are not required at build-time,
+    /// but on runtime and are not automatically picked up
+    /// by the dependency checker
+    pub extra_dependencies: Vec<ObjectID>,
+
     /// The instructions for the `prepare` step
     pub prepare: Option<String>,
     /// The instructions for the `build` step
@@ -185,7 +190,13 @@ impl FormulaFile {
             .insert_into_odb(&mut object_db, compression)
             .ctx(|| "Inserting tree")?;
 
-        let packages = parse_formula_packages(formula.clone());
+        let formula_clone = formula.clone();
+
+        let host_dependencies = resolve_packages(formula.host_dependencies);
+        let target_dependencies = resolve_packages(formula.target_dependencies);
+        let extra_dependencies = resolve_packages(formula.extra_dependencies);
+
+        let packages = parse_formula_packages(formula_clone, extra_dependencies.clone());
 
         let formula = Formula {
             name: formula.name,
@@ -194,9 +205,9 @@ impl FormulaFile {
 
             arch: architecture,
 
-            host_dependencies: resolve_packages(formula.host_dependencies),
-            target_dependencies: resolve_packages(formula.target_dependencies),
-            extra_dependencies: resolve_packages(formula.extra_dependencies),
+            host_dependencies,
+            target_dependencies,
+            extra_dependencies,
 
             tree: tree_obj.oid,
 
@@ -257,7 +268,11 @@ impl Formula {
 /// otherwise using the packages as overrides to the formula's defaults
 /// # Arguments
 /// * `formula_file` - The source from the parsed formula file
-fn parse_formula_packages(formula_file: FormulaFile) -> IndexMap<String, FormulaPackage> {
+/// * `formula_extra_dependencies` - The extra dependencies inherited from the formula
+fn parse_formula_packages(
+    formula_file: FormulaFile,
+    formula_extra_dependencies: Vec<ObjectID>,
+) -> IndexMap<String, FormulaPackage> {
     let mut packages = IndexMap::new();
 
     let description = formula_file.description;
@@ -268,6 +283,7 @@ fn parse_formula_packages(formula_file: FormulaFile) -> IndexMap<String, Formula
         // If the 'packages' field is empty, we clone the formula as a default package
         let package = FormulaPackage {
             description,
+            extra_dependencies: Vec::new(),
             prepare: None,
             build: None,
             check: None,
@@ -283,8 +299,14 @@ fn parse_formula_packages(formula_file: FormulaFile) -> IndexMap<String, Formula
             let mut layout = layout.clone();
             layout.extend(source_package.layout);
 
+            let package_extra_dependencies = resolve_packages(source_package.extra_dependencies);
+            let mut extra_dependencies = formula_extra_dependencies.clone();
+            extra_dependencies.extend(package_extra_dependencies);
+            extra_dependencies.dedup();
+
             let package = FormulaPackage {
                 description: source_package.description.unwrap_or(description.clone()),
+                extra_dependencies,
                 prepare: source_package.prepare,
                 build: source_package.build,
                 check: source_package.check,

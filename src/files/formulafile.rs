@@ -75,6 +75,9 @@ pub struct FormulaFilePackage {
     /// The description for the package
     pub description: Option<String>,
 
+    /// Additional dependencies that the system did not pick up
+    pub extra_dependencies: Option<Vec<VersionString>>,
+
     /// Whether or not to strip the resulting binaries
     pub strip: Option<bool>,
 

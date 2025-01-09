@@ -22,10 +22,13 @@ pub enum BuilderError {
 }
 
 impl<T> ErrorExt<T> for Result<T, BuilderError> {
-    fn e_context<F: Fn() -> String>(self, context: F) -> Result<T, Error> {
+    fn e_context<S: ToString, F: Fn() -> S>(self, context: F) -> Result<T, Error> {
         match self {
             Ok(v) => Ok(v),
-            Err(e) => Err(Error::new_context(ErrorType::Builder(e), context())),
+            Err(e) => Err(Error::new_context(
+                ErrorType::Builder(e),
+                context().to_string(),
+            )),
         }
     }
 }

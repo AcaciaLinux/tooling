@@ -9,11 +9,6 @@ use crate::util::fs::{Directory, SearchType};
 
 use self::info::PackageInfo;
 
-#[cfg(feature = "builder")]
-mod buildable;
-#[cfg(feature = "builder")]
-pub use buildable::*;
-
 pub mod info;
 
 /// A package that has a name

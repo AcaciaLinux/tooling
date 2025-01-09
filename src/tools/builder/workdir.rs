@@ -8,13 +8,6 @@ use crate::{
     util,
 };
 
-use lazy_static::lazy_static;
-
-lazy_static! {
-    /// The name of the install directory
-    static ref PATH_INSTALL_DIR: PathBuf = PathBuf::from("install");
-}
-
 /// A working directory for the builder to work in
 #[derive(Debug)]
 pub struct BuilderWorkdir {
@@ -46,61 +39,5 @@ impl BuilderWorkdir {
     /// Returns the root directory for this working directory
     pub fn get_root(&self) -> &Path {
         &self.root
-    }
-
-    /// The directory for the overlayfs to live in
-    ///
-    /// `<root>/overlay`
-    pub fn get_overlay_dir(&self) -> PathBuf {
-        self.root.join("overlay")
-    }
-
-    /// The directory for the overlayfs `work` dir to live in
-    ///
-    /// `<overlay_dir>/work`
-    pub fn get_overlay_dir_work(&self) -> PathBuf {
-        self.get_overlay_dir().join("work")
-    }
-
-    /// The directory for the overlayfs `upper` dir to live in
-    ///
-    /// `<overlay_dir>/upper`
-    pub fn get_overlay_dir_upper(&self) -> PathBuf {
-        self.get_overlay_dir().join("upper")
-    }
-
-    /// The directory for the overlayfs `merged` dir to live in
-    ///
-    /// `<overlay_dir>/merged`
-    pub fn get_overlay_dir_merged(&self) -> PathBuf {
-        self.get_overlay_dir().join("merged")
-    }
-
-    /// The directory for the formula and its data to live in
-    ///
-    /// `<root>/formula`
-    pub fn get_formula_dir(&self) -> PathBuf {
-        self.root.join("formula")
-    }
-
-    /// The path to the installation target directory from inside the `chroot`
-    ///
-    /// `/<PATH_INSTALL_DIR>`
-    pub fn get_install_dir_inner(&self) -> PathBuf {
-        PathBuf::from("/").join(&*PATH_INSTALL_DIR)
-    }
-
-    /// The path to the installation target directory from outside the `chroot`
-    ///
-    /// `<overlay_dir_merged>/<PATH_INSTALL_DIR>`
-    pub fn get_install_dir_outer(&self) -> PathBuf {
-        self.get_overlay_dir_merged().join(&*PATH_INSTALL_DIR)
-    }
-
-    /// The directory to place the finished artifact's output files in
-    ///
-    /// `<root>/out`
-    pub fn get_output_dir(&self) -> PathBuf {
-        self.get_root().join("out")
     }
 }

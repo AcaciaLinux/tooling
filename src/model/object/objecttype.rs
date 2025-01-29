@@ -17,6 +17,9 @@ pub enum ObjectType {
     /// An Acacia specific formula object
     AcaciaFormula = 0x0120,
 
+    /// An Acacia specific package object
+    AcaciaPackage = 0x0130,
+
     /// An Acacia specific index object
     AcaciaIndex = 0x0140,
 

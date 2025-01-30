@@ -60,7 +60,7 @@ impl OverlayMount {
         let work_s = work.to_string_lossy();
         let upper_s = upper.to_string_lossy();
 
-        let data = format!("lowerdir={lower_s},upperdir={upper_s},workdir={work_s}");
+        let data = format!("index=off,lowerdir={lower_s},upperdir={upper_s},workdir={work_s}");
         debug!(
             "Mounting overlay ({}) ==> {}",
             &data,

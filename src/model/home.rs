@@ -59,4 +59,11 @@ impl Home {
     pub fn get_builds_dir(&self) -> PathBuf {
         self.get_tmp_dir().join("builds")
     }
+
+    /// Returns a workdir for the builder to work in
+    /// using a uuid to separate builds
+    pub fn get_builder_workdir(&self) -> PathBuf {
+        let uuid = uuid::Uuid::new_v4();
+        self.get_builds_dir().join(uuid.to_string())
+    }
 }

@@ -22,9 +22,6 @@ use super::{Environment, EnvironmentExecutable};
 
 /// Represents a build environment that can be used to build a package.
 ///
-/// Expects the following directories in the `toolchain_dir`:
-/// - `/bin`: Binaries
-/// - `/sbin`: Superuser binaries
 /// Expects the following programs:
 /// - `env`: The `env` program that can be found using the PATH variable
 /// - `sh`: The `sh` program that can be found using the PATH variable

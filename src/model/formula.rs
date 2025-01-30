@@ -23,6 +23,9 @@ use super::{
     Tree,
 };
 
+mod buildstep;
+pub use buildstep::*;
+
 /// A resolved formula that uniquely describes a package's
 /// build instructions to be stored in the object database.
 #[derive(Deserialize, Serialize, Debug)]

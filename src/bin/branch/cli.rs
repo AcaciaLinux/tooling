@@ -37,7 +37,7 @@ impl Cli {
     pub fn run(&self) -> Result<i32, Error> {
         if std::env::var("RUST_LOG").is_err() {
             match &self.loglevel {
-                0 => {}
+                0 => std::env::set_var("RUST_LOG", "warn"),
                 1 => std::env::set_var("RUST_LOG", "info"),
                 2 => std::env::set_var("RUST_LOG", "debug"),
                 _ => std::env::set_var("RUST_LOG", "trace"),

@@ -7,7 +7,7 @@ use std::{
     time::Duration,
 };
 
-use log::{debug, error, info, warn};
+use log::{debug, error, warn};
 use std::process::Command;
 
 use crate::{
@@ -189,7 +189,7 @@ impl Environment for BuildEnvironment {
 
 impl Drop for BuildEnvironment {
     fn drop(&mut self) {
-        info!("Tearing down build environment...");
+        debug!("Tearing down build environment...");
         while let Some(mount) = self.mounts.pop() {
             drop(mount)
         }

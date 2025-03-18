@@ -131,7 +131,7 @@ impl Environment for BuildEnvironment {
         let mut child = command
             .stdout(Stdio::piped())
             .spawn()
-            .e_context(|| "Spawing child process".to_owned())?;
+            .e_context(|| "Spawning child process".to_owned())?;
 
         // Get the `stdout` of the child to redirect it
         let mut child_stdout = child.stdout.take().expect("Stdout");

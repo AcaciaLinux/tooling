@@ -1,0 +1,19 @@
+{
+    "version": "0.2",
+    "ignorePaths": [],
+    "dictionaryDefinitions": [],
+    "dictionaries": [],
+    "words": [
+        "archs",
+        "buildenv",
+        "loglevel",
+        "lowerdirs",
+        "overlayfs",
+        "sysfs",
+        "tmpfs",
+        "Unpackable",
+        "vkfs"
+    ],
+    "ignoreWords": [],
+    "import": []
+}

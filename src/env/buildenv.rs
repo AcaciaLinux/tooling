@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     io::{self},
     path::Path,
     process::Stdio,
@@ -87,6 +88,7 @@ impl Environment for BuildEnvironment {
         &self,
         executable: &dyn EnvironmentExecutable,
         signal_dispatcher: &SignalDispatcher,
+        environment_variables: HashMap<String, String>,
     ) -> Result<std::process::ExitStatus, Error> {
         let mut command = Command::new("/bin/chroot");
 
@@ -101,6 +103,7 @@ impl Environment for BuildEnvironment {
             .arg("-c")
             .arg(executable.get_command());
 
+        command.envs(environment_variables);
         command.envs(executable.get_env_variables());
 
         debug!(

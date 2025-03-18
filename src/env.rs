@@ -17,10 +17,12 @@ pub trait Environment {
     /// # Arguments
     /// * `executable` - A reference to the executable to execute
     /// * `signal_dispatcher` - A reference to the `SignalDispatcher` to register signals for the executed process
+    /// * `environment_variables` - General environment variables to be passed into the executed environment
     fn execute(
         &self,
         executable: &dyn EnvironmentExecutable,
         signal_dispatcher: &SignalDispatcher,
+        environment_variables: HashMap<String, String>,
     ) -> Result<std::process::ExitStatus, Error>;
 }
 

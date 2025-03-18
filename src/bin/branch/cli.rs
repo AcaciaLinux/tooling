@@ -9,7 +9,9 @@ use tooling::{
 mod ingest;
 pub use ingest::*;
 
+#[cfg(feature = "builder")]
 mod build;
+#[cfg(feature = "builder")]
 pub use build::*;
 
 /// The builder tool for AcaciaLinux
@@ -30,6 +32,7 @@ pub struct Cli {
 #[derive(Parser)]
 pub enum BranchCommand {
     Ingest(IngestCommand),
+    #[cfg(feature = "builder")]
     Build(BuildCommand),
 }
 
@@ -69,6 +72,7 @@ impl BranchCommand {
     pub fn run(&self, cli: &Cli) -> Result<i32, Error> {
         match self {
             Self::Ingest(cmd) => cmd.run(cli),
+            #[cfg(feature = "builder")]
             Self::Build(cmd) => cmd.run(cli),
         }
     }

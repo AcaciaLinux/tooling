@@ -44,6 +44,7 @@ nix = { version = "0.29.0", features = ["fs", "user"] }
 indexmap = { version = "2.7.0", features = ["serde"] }
 serde_json = "1.0.134"
 itertools = "0.14.0"
+ctrlc = "3.4.5"
 
 tooling-codegen = { path = "tooling-codegen" }
 
@@ -53,4 +54,3 @@ pretty_env_logger = { version = "0.5.0" }
 
 # Feature: mount
 sys-mount = { version = "3.0.1", default-features = false, optional = true }
-ctrlc = "3.4.5"

@@ -193,7 +193,15 @@ impl Builder {
 
             let env = BuildEnvironment::new(Box::new(mount))?;
 
-            env.execute(executable, signal_dispatcher, environment_variables)?;
+            let exit = env.execute(executable, signal_dispatcher, environment_variables)?;
+
+            // Handle an unsuccessful command as a build error
+            if !exit.success() {
+                return Err(Error::new(ErrorType::Builder(
+                    BuilderError::CommandFailed { status: exit },
+                )))
+                .ctx(|| format!("While running {}", executable.get_name()));
+            }
         }
         Ok(())
     }

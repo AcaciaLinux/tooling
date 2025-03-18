@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use clap::Parser;
 use tooling::{
@@ -24,6 +24,13 @@ pub struct BuildCommand {
     #[arg(long)]
     pub lower: Vec<PathBuf>,
 
+    /// Additional paths to be added to the build's `PATH`
+    /// environment variable.
+    ///
+    /// THIS WILL TAINT THE BUILD!
+    #[arg(long)]
+    pub path: Vec<PathBuf>,
+
     formula: ObjectID,
 }
 
@@ -36,13 +43,17 @@ impl BuildCommand {
 
         let (formula, _object) = Formula::from_odb(&self.formula, &odb)?;
 
-        println!("{:#?}", formula);
-
         let builder = Builder::new(&home, formula);
 
-        let dispatcher = SignalDispatcher::default();
+        let dispatcher = Arc::new(SignalDispatcher::default());
 
-        builder.build(self.lower.clone(), &dispatcher)?;
+        let sd_clone = dispatcher.clone();
+        ctrlc::set_handler(move || {
+            sd_clone.handle();
+        })
+        .expect("Attach signal handler");
+
+        builder.build(&odb, self.lower.clone(), self.path.clone(), &dispatcher)?;
 
         Ok(0)
     }

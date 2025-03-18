@@ -7,8 +7,8 @@ pub use workdir::*;
 use crate::{
     env::{BuildEnvironment, Environment, EnvironmentExecutable},
     error::{Error, ErrorExt, ErrorType, Throwable},
-    model::{BuildStep, BuildStepType, Formula, Home},
-    util::{fs::PathUtil, mount::OverlayMount, signal::SignalDispatcher},
+    model::{BuildStep, BuildStepType, Formula, Home, ObjectDB, Tree},
+    util::{fs::PathUtil, mount::OverlayMount, signal::SignalDispatcher, ODBUnpackable},
 };
 
 pub struct Builder {
@@ -28,6 +28,10 @@ impl Builder {
         self.root.join("overlay")
     }
 
+    fn get_overlay_src_dir(&self) -> PathBuf {
+        self.get_overlay_dir().join("source")
+    }
+
     fn get_overlay_merged(&self) -> PathBuf {
         self.get_overlay_dir().join("merged")
     }
@@ -42,7 +46,9 @@ impl Builder {
 
     pub fn build(
         self,
+        odb: &ObjectDB,
         additional_lowerdirs: Vec<PathBuf>,
+        additional_paths: Vec<PathBuf>,
         signal_dispatcher: &SignalDispatcher,
     ) -> Result<(), Error> {
         let tainted = !additional_lowerdirs.is_empty();
@@ -52,20 +58,54 @@ impl Builder {
             }
         }
 
-        let mut lower_dirs = Vec::new();
+        // Deploy the formula's tree to later base our overlay fs on
+        let src_dir = self.get_overlay_src_dir();
+        let mut tree_object = odb.read(&self.formula.tree).ctx(|| "Opening tree object")?;
+        let tree = Tree::unpack_from_odb(&mut tree_object, odb).ctx(|| "Reading tree object")?;
+        tree.deploy(&src_dir, odb).ctx(|| "Deploying tree")?;
+
+        // Construct the vector of lower directories for the overlay fs
+        let mut lower_dirs = vec![src_dir];
         lower_dirs.extend_from_slice(&additional_lowerdirs);
 
+        // Handle additional PATH paths
+        let mut path_var = String::new();
+        if !additional_paths.is_empty() {
+            path_var += ":";
+            path_var += &additional_paths
+                .iter()
+                .map(|p| p.str_lossy())
+                .collect::<Vec<String>>()
+                .join(":");
+        }
+
         let mut envs = HashMap::new();
+        envs.insert("PATH".to_owned(), path_var);
 
-        envs.insert(
-            "PATH".to_owned(),
-            "/bin:/usr/bin:/sbin:/usr/sbin".to_owned(),
-        );
-
-        self.execute_build_step(BuildStepType::Prepare, &mut lower_dirs, signal_dispatcher)?;
-        self.execute_build_step(BuildStepType::Build, &mut lower_dirs, signal_dispatcher)?;
-        self.execute_build_step(BuildStepType::Check, &mut lower_dirs, signal_dispatcher)?;
-        self.execute_build_step(BuildStepType::Package, &mut lower_dirs, signal_dispatcher)?;
+        self.execute_build_step(
+            BuildStepType::Prepare,
+            &mut lower_dirs,
+            signal_dispatcher,
+            envs.clone(),
+        )?;
+        self.execute_build_step(
+            BuildStepType::Build,
+            &mut lower_dirs,
+            signal_dispatcher,
+            envs.clone(),
+        )?;
+        self.execute_build_step(
+            BuildStepType::Check,
+            &mut lower_dirs,
+            signal_dispatcher,
+            envs.clone(),
+        )?;
+        self.execute_build_step(
+            BuildStepType::Package,
+            &mut lower_dirs,
+            signal_dispatcher,
+            envs,
+        )?;
 
         Ok(())
     }
@@ -75,6 +115,7 @@ impl Builder {
         step: BuildStepType,
         lower_dirs: &mut Vec<PathBuf>,
         signal_dispatcher: &SignalDispatcher,
+        environment_variables: HashMap<String, String>,
     ) -> Result<(), Error> {
         if let Some(step_cmd) = self.formula.get_build_step(step) {
             info!(
@@ -98,6 +139,7 @@ impl Builder {
                 lower_dirs.clone(),
                 upper_dir.clone(),
                 signal_dispatcher,
+                environment_variables.clone(),
             )?;
             lower_dirs.push(upper_dir);
         }
@@ -125,6 +167,7 @@ impl Builder {
                     lower_dirs.clone(),
                     upper_dir,
                     signal_dispatcher,
+                    environment_variables.clone(),
                 )?;
             }
         }
@@ -138,6 +181,7 @@ impl Builder {
         lower_dirs: Vec<PathBuf>,
         upper_dir: PathBuf,
         signal_dispatcher: &SignalDispatcher,
+        environment_variables: HashMap<String, String>,
     ) -> Result<(), Error> {
         {
             let mount = OverlayMount::new(
@@ -149,7 +193,7 @@ impl Builder {
 
             let env = BuildEnvironment::new(Box::new(mount))?;
 
-            env.execute(executable, signal_dispatcher)?;
+            env.execute(executable, signal_dispatcher, environment_variables)?;
         }
         Ok(())
     }

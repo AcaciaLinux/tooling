@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 hex = "0.4.3"
+log = "0.4.29"
 sha2 = "0.10.9"

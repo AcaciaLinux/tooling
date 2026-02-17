@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, path::PathBuf};
 
 /// The SHA256 object id is identified by a ASCII 'S', 0x53
 const OID_ID_SHA256: u8 = 0x53;
@@ -19,6 +19,33 @@ impl ObjectID {
         match self.inner {
             InnerObjectID::SHA256(v) => v.into(),
         }
+    }
+
+    /// Encodes this object id to a hex string
+    pub fn to_hex_str(&self) -> String {
+        hex::encode(self.id())
+    }
+
+    /// Constructs a path for this object id and a depth:
+    ///
+    /// - `abcdef` => `abcdef` (depth = 0)
+    /// - `abcdef` => `ab/abcdef` (depth = 1)
+    /// - `abcdef` => `ab/cd/abcdef` (depth = 2)
+    /// # Arguments
+    /// * `depth` - The depth to split the id into
+    pub fn to_path(&self, depth: usize) -> PathBuf {
+        let oid_string = self.to_hex_str();
+
+        let mut path = PathBuf::new();
+        let mut oid = oid_string.as_str();
+
+        for _ in 0..depth {
+            let split = oid.split_at(2);
+            path.push(split.0);
+            oid = split.1;
+        }
+
+        path.join(oid_string)
     }
 }
 

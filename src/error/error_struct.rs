@@ -38,6 +38,18 @@ impl ALError {
         context.add(f);
         Self { kind, context }
     }
+
+    /// Creates a pretty backtrace string from this error informing about
+    /// the error that occurred and its context
+    /// # Returns
+    /// The string of the backtrace
+    pub fn backtrace_string(&self) -> String {
+        let mut string = format!("Error: {} - while", self.kind);
+
+        string += &self.context.pretty_backtrace();
+
+        string
+    }
 }
 
 impl<T> ALErrorExt<T> for ALResult<T> {

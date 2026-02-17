@@ -13,4 +13,20 @@ impl ALErrorContext {
     pub fn add<S: ToString, F: Fn() -> S>(&mut self, f: F) {
         self.context.push_back((f)().to_string())
     }
+
+    /// Creates a backtrace string from the context
+    /// # Returns
+    /// The string with the pretty backtrace
+    pub fn pretty_backtrace(&self) -> String {
+        let mut string = String::new();
+
+        for (depth, context) in self.context.iter().rev().enumerate() {
+            string += "\n";
+            string += &" ".repeat(depth + 1);
+            string += "- ";
+            string += context;
+        }
+
+        string
+    }
 }

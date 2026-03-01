@@ -28,14 +28,14 @@ This version of the object format uses **little-endian** encoding for multi-byte
 
 | Octets |                   Description                    |
 | :----: | :----------------------------------------------: |
-|   x    |                    Object ID                     |
 |   1    | [Compression Type](#version-1-compression-types) |
-|   8    |                 Data Length (d)                  |
+|   8    |              Compressed Length (d)               |
+|   8    |                 Extracted Length                 |
 |   d    |                       Data                       |
 
 ## Version 1 Compression Types
 
 The following compression types are defined:
 
-- **0x00** - Reserved and unused
+- **0x00** - No compression, raw data
 - **0x01** - LZMA

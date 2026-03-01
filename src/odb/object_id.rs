@@ -1,6 +1,6 @@
 use std::{
     fmt::Display,
-    io::Read,
+    io::{Read, Write},
     path::{Path, PathBuf},
 };
 
@@ -29,25 +29,38 @@ impl ObjectID {
     /// all of its contents
     /// # Arguments
     /// * `file` - The file to be hashed to an object id
-    pub fn from_sha256_file(file: &Path) -> ALResult<Self> {
+    /// # Returns
+    /// The amount of data hashed (in bytes) and the resulting object id
+    pub fn from_sha256_file(file: &Path) -> ALResult<(usize, Self)> {
         let ctx = str!("Deriving Object ID from stream");
 
-        Ok(sha256_file(file).ctx(ctx)?.into())
+        let (len, hash) = sha256_file(file).ctx(ctx)?;
+
+        Ok((len, hash.into()))
     }
 
     /// Derives a SHA256 Object ID from the provided
     /// stream by reading from it and hashing the contents
+    /// and passing out the read data to `output`
     ///
     /// This function does not respect the offset the stream
     /// is currently at, so if this is a file, the position
     /// is ignored and hashing simply starts from the current
     /// point in the stream
     /// # Arguments
-    /// * `stream` - The stream to has into an object id
-    pub fn from_sha256_stream<R: Read>(stream: &mut R) -> ALResult<Self> {
+    /// * `input` - The input stream to read from
+    /// * `output` - The output stream to write to
+    /// # Returns
+    /// The amount of data hashed (in bytes) and the resulting object id
+    pub fn from_sha256_stream<R: Read, W: Write>(
+        input: &mut R,
+        output: &mut W,
+    ) -> ALResult<(usize, Self)> {
         let ctx = str!("Deriving Object ID from stream");
 
-        Ok(sha256_stream(stream).ctx(ctx)?.into())
+        let (len, hash) = sha256_stream(input, output).ctx(ctx)?;
+
+        Ok((len, hash.into()))
     }
 
     /// Returns the ID (the digest) as a vector of binary data

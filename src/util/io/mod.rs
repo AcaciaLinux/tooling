@@ -2,3 +2,6 @@
 
 mod null_sink;
 pub use null_sink::NullSink;
+
+mod wrapper;
+pub use wrapper::{DynReadWrapper, DynWriteWrapper};

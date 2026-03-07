@@ -3,3 +3,10 @@
 
 mod object_id;
 pub use object_id::*;
+
+mod odb;
+pub use odb::ObjectDatabase;
+
+mod compression;
+pub mod driver;
+pub use compression::ObjectCompression;

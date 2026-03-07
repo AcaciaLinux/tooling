@@ -14,6 +14,7 @@ Starting from it, the parser can then infer the following data layout from the v
 | :----: | :-----------------------------------------: |
 |   4    | File magic: `AOBJ` [0x41, 0x4F, 0x42, 0x4A] |
 |   1    |                   Version                   |
+|   3    |                   Padding                   |
 
 The following versions are defined:
 
@@ -29,6 +30,7 @@ This version of the object format uses **little-endian** encoding for multi-byte
 | Octets |                   Description                    |
 | :----: | :----------------------------------------------: |
 |   1    | [Compression Type](#version-1-compression-types) |
+|   7    |                     Padding                      |
 |   8    |              Compressed Length (d)               |
 |   8    |                 Extracted Length                 |
 |   d    |                       Data                       |

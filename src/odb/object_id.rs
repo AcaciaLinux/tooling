@@ -77,9 +77,12 @@ impl ObjectID {
 
     /// Constructs a path for this object id and a depth:
     ///
-    /// - `abcdef` => `abcdef` (depth = 0)
-    /// - `abcdef` => `ab/abcdef` (depth = 1)
-    /// - `abcdef` => `ab/cd/abcdef` (depth = 2)
+    /// A depth of 0 still results in a subdirectory, as the first
+    /// byte of an object ID is its identification number to keep
+    /// a clean separation between different object id types.
+    ///
+    /// - `abcdef` => `ab/abcdef` (depth = 0)
+    /// - `abcdef` => `ab/cd/abcdef` (depth = 1)
     /// # Arguments
     /// * `depth` - The depth to split the id into
     pub fn to_path(&self, depth: usize) -> PathBuf {
@@ -88,7 +91,7 @@ impl ObjectID {
         let mut path = PathBuf::new();
         let mut oid = oid_string.as_str();
 
-        for _ in 0..depth {
+        for _ in 0..(depth + 1) {
             let split = oid.split_at(2);
             path.push(split.0);
             oid = split.1;
